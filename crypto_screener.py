@@ -17,6 +17,7 @@ This is a statistical/backtesting tool, not investment advice. See the README
 for how the "recommended" label is computed and its limitations.
 """
 
+import html
 import json
 import math
 import os
@@ -255,11 +256,11 @@ def send_telegram(title, body):
     text = f"{title}\n\n{body}"
     # Telegram messages are capped at 4096 characters; trim defensively.
     if len(text) > 3900:
-        text = text[:3900] + "\n...(생략)"
+        text = text[:3900] + "\n...(생략, 스캔 범위를 줄이면 전체가 다 옵니다)"
     try:
         requests.post(
             f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": text},
+            data={"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "HTML"},
             timeout=15,
         )
     except Exception as e:  # noqa: BLE001
@@ -410,9 +411,9 @@ def main():
                 rec["settled"] = True
                 rec["actualPrice"] = actual
                 rec["hit"] = actual > rec["priceAtLog"]
-                mark = "적중" if rec["hit"] else "불일치"
+                mark = "✅ 적중" if rec["hit"] else "❌ 불일치"
                 settled_lines.append(
-                    f"- {rec['koName']}({rec['tier']}): {mark} "
+                    f"• {html.escape(rec['koName'])}({rec['tier']}): {mark} "
                     f"({won(rec['priceAtLog'])} → {won(actual)})"
                 )
 
@@ -445,48 +446,51 @@ def main():
     overall_acc = (len(hits) / len(settled_all) * 100) if settled_all else None
 
     # ---- compose notification ----
-    lines = [f"[크립토 추천 스크리너] {today_str}", ""]
+    TIER_EMOJI = {"대형": "🔵", "중형": "🟢", "소형": "🟠"}
+    lines = [f"📊 <b>크립토 추천 스크리너</b>  {today_str}", ""]
     if fg_value is not None:
-        lines.append(f"■ 공포탐욕지수: {fg_value} ({fg_label})")
+        fg_emoji = "😱" if fg_value <= 25 else ("🤑" if fg_value >= 75 else "😐")
+        lines.append(f"{fg_emoji} 공포탐욕지수: <b>{fg_value}</b> ({fg_label})")
         lines.append("")
     for tier_name in ["대형", "중형", "소형"]:
-        lines.append(f"■ {tier_name} TOP5")
+        emoji = TIER_EMOJI.get(tier_name, "")
+        lines.append(f"{emoji} <b>{tier_name} TOP5</b>")
         picks = top5_by_group[tier_name]
         if not picks:
             lines.append("  (분석 결과 없음)")
         for i, r in enumerate(picks, 1):
-            tag = " ✓추천" if r["recommended"] else ""
+            tag = " ⭐추천" if r["recommended"] else ""
             rsi_txt = f"{r['rsi14']:.0f}" if r.get("rsi14") is not None else "N/A"
             factor_txt = " · ".join(r["factorTags"]) if r["factorTags"] else "없음"
+            name = html.escape(r["koName"])
+            lines.append(f"<b>{i}. {name}({sym_of(r['market'])})</b>{tag}")
             lines.append(
-                f"  {i}. {r['koName']}({sym_of(r['market'])}){tag}"
+                f"　현재가 {won(r['currentPrice'])} | 상승확률 <b>{r['upPct']:.1f}%</b> | {r['trendDir']}"
             )
             lines.append(
-                f"     현재가 {won(r['currentPrice'])} · 상승확률 {r['upPct']:.1f}% · 추세: {r['trendDir']}"
+                f"　목표가(중앙값/추세) {won(r['p50'])} / {won(r['trendProjection'])}"
             )
-            lines.append(
-                f"     목표가(중앙값/추세) {won(r['p50'])} / {won(r['trendProjection'])} · "
-                f"지지 {won(r['support'])} · 저항 {won(r['resistance'])} · RSI {rsi_txt}"
-            )
-            lines.append(f"     보정요인: {factor_txt}")
+            lines.append(f"　지지 {won(r['support'])} ~ 저항 {won(r['resistance'])} | RSI {rsi_txt}")
+            lines.append(f"　보정요인: {factor_txt}")
+            lines.append("")
         lines.append("")
 
     if settled_lines:
-        lines.append("■ 오늘 만기된 과거 추천 결과")
+        lines.append("🎯 <b>오늘 만기된 과거 추천 결과</b>")
         lines.extend(settled_lines)
         lines.append("")
 
     if overall_acc is not None:
-        lines.append(f"■ 누적 적중률: {overall_acc:.1f}% ({len(hits)}/{len(settled_all)}건)")
+        lines.append(f"📈 누적 적중률: <b>{overall_acc:.1f}%</b> ({len(hits)}/{len(settled_all)}건)")
     else:
-        lines.append("■ 누적 적중률: 아직 만기된 기록 없음")
+        lines.append("📈 누적 적중률: 아직 없음 (오늘 추천이 7일 뒤부터 순차적으로 채점됩니다)")
 
     lines.append("")
-    lines.append("※ 과거 데이터 기반 통계 모델이며 투자 조언이 아닙니다.")
+    lines.append("⚠️ 과거 데이터 기반 통계 모델이며 투자 조언이 아닙니다.")
 
     message = "\n".join(lines)
     print(message)
-    send_telegram("오늘의 크립토 추천 코인", message)
+    send_telegram("<b>오늘의 크립토 추천 코인</b>", message)
 
 
 if __name__ == "__main__":
