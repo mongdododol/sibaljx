@@ -170,6 +170,8 @@ def linear_slope(arr):
 def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
     candles = fetch_candles(market, 100)
     closes = [c["trade_price"] for c in candles]
+    highs = [c.get("high_price", c["trade_price"]) for c in candles]
+    lows = [c.get("low_price", c["trade_price"]) for c in candles]
     volumes = [c.get("candle_acc_trade_volume", 0) or 0 for c in candles]
     current_price = closes[-1]
 
@@ -216,6 +218,8 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
     )
 
     rsi14 = rsi(closes, 14)
+    resistance = max(highs[-20:])
+    support = min(lows[-20:])
 
     return {
         "current_price": current_price,
@@ -227,6 +231,8 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
         "coin_return_30": coin_return_30,
         "multi_aligned": multi_aligned,
         "rsi14": rsi14,
+        "resistance": resistance,
+        "support": support,
     }
 
 
@@ -315,12 +321,15 @@ def main():
                     "koName": m["korean_name"],
                     "currentPrice": r["current_price"],
                     "upPct": r["up_pct"],
+                    "p50": r["p50"],
                     "trendProjection": r["trend_projection"],
                     "trendDir": r["trend_dir"],
                     "volumeRising": r["volume_rising"],
                     "multiAligned": r["multi_aligned"],
                     "relStrength": rel_strength,
                     "rsi14": r["rsi14"],
+                    "resistance": r["resistance"],
+                    "support": r["support"],
                 }
             )
             time.sleep(0.05)  # be polite to the public API
@@ -367,6 +376,20 @@ def main():
             r["recommended"] = r["trendDir"] == "상승 추세 연장 가능성" and r["upPct"] >= 55 and (
                 rsi_val is None or rsi_val < 70
             )
+            tags = []
+            if r["volumeRising"]:
+                tags.append("거래량↑")
+            if r["multiAligned"]:
+                tags.append("기간정합")
+            if r["relStrength"] > 0.05:
+                tags.append("BTC대비강세")
+            elif r["relStrength"] < -0.05:
+                tags.append("BTC대비약세")
+            if rsi_val is not None and rsi_val <= 30:
+                tags.append("RSI과매도")
+            elif rsi_val is not None and rsi_val >= 70:
+                tags.append("RSI과매수(주의)")
+            r["factorTags"] = tags
         arr.sort(key=lambda r: r["score"], reverse=True)
         return arr[:5]
 
@@ -433,11 +456,19 @@ def main():
             lines.append("  (분석 결과 없음)")
         for i, r in enumerate(picks, 1):
             tag = " ✓추천" if r["recommended"] else ""
-            rsi_txt = f", RSI {r['rsi14']:.0f}" if r.get("rsi14") is not None else ""
+            rsi_txt = f"{r['rsi14']:.0f}" if r.get("rsi14") is not None else "N/A"
+            factor_txt = " · ".join(r["factorTags"]) if r["factorTags"] else "없음"
             lines.append(
-                f"  {i}. {r['koName']}({sym_of(r['market'])}){tag} "
-                f"{won(r['currentPrice'])} 상승확률 {r['upPct']:.1f}%{rsi_txt}"
+                f"  {i}. {r['koName']}({sym_of(r['market'])}){tag}"
             )
+            lines.append(
+                f"     현재가 {won(r['currentPrice'])} · 상승확률 {r['upPct']:.1f}% · 추세: {r['trendDir']}"
+            )
+            lines.append(
+                f"     목표가(중앙값/추세) {won(r['p50'])} / {won(r['trendProjection'])} · "
+                f"지지 {won(r['support'])} · 저항 {won(r['resistance'])} · RSI {rsi_txt}"
+            )
+            lines.append(f"     보정요인: {factor_txt}")
         lines.append("")
 
     if settled_lines:
