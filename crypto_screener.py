@@ -118,6 +118,44 @@ def sma(arr, period):
     return sum(arr[-period:]) / period
 
 
+def rsi(arr, period=14):
+    if len(arr) < period + 1:
+        return None
+    gains = losses = 0.0
+    for i in range(len(arr) - period, len(arr)):
+        diff = arr[i] - arr[i - 1]
+        if diff >= 0:
+            gains += diff
+        else:
+            losses += abs(diff)
+    avg_gain, avg_loss = gains / period, losses / period
+    if avg_loss == 0:
+        return 100.0
+    rs = avg_gain / avg_loss
+    return 100 - (100 / (1 + rs))
+
+
+_FEAR_GREED_CACHE = {}
+
+
+def fetch_fear_greed():
+    """Crypto Fear & Greed Index (alternative.me) - a market-wide sentiment gauge,
+    not a per-coin signal. Cached for the run since it's the same for every coin."""
+    if "value" in _FEAR_GREED_CACHE:
+        return _FEAR_GREED_CACHE
+    try:
+        r = requests.get("https://api.alternative.me/fng/", params={"limit": 1}, timeout=15)
+        r.raise_for_status()
+        d = r.json()["data"][0]
+        _FEAR_GREED_CACHE["value"] = int(d["value"])
+        _FEAR_GREED_CACHE["label"] = d["value_classification"]
+    except Exception as e:  # noqa: BLE001
+        print(f"fear/greed fetch failed: {e}")
+        _FEAR_GREED_CACHE["value"] = None
+        _FEAR_GREED_CACHE["label"] = None
+    return _FEAR_GREED_CACHE
+
+
 def linear_slope(arr):
     n = len(arr)
     if n < 2:
@@ -177,6 +215,8 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
         trend_dir == "하락 추세 연장 가능성" and not long_term_up
     )
 
+    rsi14 = rsi(closes, 14)
+
     return {
         "current_price": current_price,
         "up_pct": up_pct,
@@ -186,6 +226,7 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
         "volume_rising": volume_rising,
         "coin_return_30": coin_return_30,
         "multi_aligned": multi_aligned,
+        "rsi14": rsi14,
     }
 
 
@@ -279,13 +320,27 @@ def main():
                     "volumeRising": r["volume_rising"],
                     "multiAligned": r["multi_aligned"],
                     "relStrength": rel_strength,
+                    "rsi14": r["rsi14"],
                 }
             )
             time.sleep(0.05)  # be polite to the public API
 
+    fear_greed = fetch_fear_greed()
+    fg_value = fear_greed.get("value")
+    fg_label = fear_greed.get("label")
+    # Market-wide contrarian tilt: buying into broad fear / trimming into broad greed
+    # is a well-known (weak, unreliable) contrarian heuristic - applied equally to
+    # every coin since it reflects overall market mood, not any single coin's chart.
+    fg_bonus = 0
+    if fg_value is not None:
+        if fg_value <= 25:
+            fg_bonus = 5   # Extreme Fear - mild contrarian tilt toward "up"
+        elif fg_value >= 75:
+            fg_bonus = -5  # Extreme Greed - mild caution tilt
+
     def score_and_sort(arr):
         for r in arr:
-            bonus = 0
+            bonus = fg_bonus
             if r["trendDir"] == "상승 추세 연장 가능성":
                 bonus += 15
             elif r["trendDir"] == "하락 추세 연장 가능성":
@@ -298,8 +353,20 @@ def main():
                 bonus += 5
             elif r["relStrength"] < -0.05:
                 bonus -= 5
+            # RSI: oversold coins get a small mean-reversion tilt (unless the trend is
+            # clearly bearish, in which case "oversold" may just mean "still falling").
+            # Overbought coins get a caution penalty - even a strong uptrend is a worse
+            # entry when already stretched.
+            rsi_val = r.get("rsi14")
+            if rsi_val is not None:
+                if rsi_val <= 30 and r["trendDir"] != "하락 추세 연장 가능성":
+                    bonus += 5
+                elif rsi_val >= 70:
+                    bonus -= 8
             r["score"] = r["upPct"] + bonus
-            r["recommended"] = r["trendDir"] == "상승 추세 연장 가능성" and r["upPct"] >= 55
+            r["recommended"] = r["trendDir"] == "상승 추세 연장 가능성" and r["upPct"] >= 55 and (
+                rsi_val is None or rsi_val < 70
+            )
         arr.sort(key=lambda r: r["score"], reverse=True)
         return arr[:5]
 
@@ -356,6 +423,9 @@ def main():
 
     # ---- compose notification ----
     lines = [f"[크립토 추천 스크리너] {today_str}", ""]
+    if fg_value is not None:
+        lines.append(f"■ 공포탐욕지수: {fg_value} ({fg_label})")
+        lines.append("")
     for tier_name in ["대형", "중형", "소형"]:
         lines.append(f"■ {tier_name} TOP5")
         picks = top5_by_group[tier_name]
@@ -363,9 +433,10 @@ def main():
             lines.append("  (분석 결과 없음)")
         for i, r in enumerate(picks, 1):
             tag = " ✓추천" if r["recommended"] else ""
+            rsi_txt = f", RSI {r['rsi14']:.0f}" if r.get("rsi14") is not None else ""
             lines.append(
                 f"  {i}. {r['koName']}({sym_of(r['market'])}){tag} "
-                f"{won(r['currentPrice'])} 상승확률 {r['upPct']:.1f}%"
+                f"{won(r['currentPrice'])} 상승확률 {r['upPct']:.1f}%{rsi_txt}"
             )
         lines.append("")
 
