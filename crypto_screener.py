@@ -18,12 +18,17 @@ for how the "recommended" label is computed and its limitations.
 """
 
 import html
+import io
 import json
 import math
 import os
 import random
 import time
 from datetime import datetime, timezone
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 import requests
 
@@ -267,6 +272,60 @@ def send_telegram(title, body):
         print(f"telegram send failed: {e}")
 
 
+def send_telegram_photo(image_bytes, caption=""):
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set - skipping photo.")
+        return
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
+            data={"chat_id": TELEGRAM_CHAT_ID, "caption": caption},
+            files={"photo": ("chart.png", image_bytes, "image/png")},
+            timeout=30,
+        )
+    except Exception as e:  # noqa: BLE001
+        print(f"telegram photo send failed: {e}")
+
+
+def generate_chart_image(top_picks):
+    """top_picks: list of (tier_name, record_dict) - one #1 pick per tier group.
+    Draws a simple 30-day price line per coin with support/resistance/current
+    price marked, as a quick visual companion to the text summary."""
+    n = len(top_picks)
+    if n == 0:
+        return None
+
+    fig, axes = plt.subplots(1, n, figsize=(5 * n, 4))
+    if n == 1:
+        axes = [axes]
+
+    for ax, (tier_name, r) in zip(axes, top_picks):
+        try:
+            candles = fetch_candles(r["market"], 30)
+            closes = [c["trade_price"] for c in candles]
+            sym = r["market"].replace("KRW-", "")
+            ax.plot(range(len(closes)), closes, color="#2563EB", linewidth=1.8)
+            ax.axhline(r["support"], color="#E11D48", linestyle="--", linewidth=1, label="Support")
+            ax.axhline(r["resistance"], color="#16A34A", linestyle="--", linewidth=1, label="Resistance")
+            ax.scatter([len(closes) - 1], [closes[-1]], color="#111827", zorder=5)
+            # Korean text isn't guaranteed to render on the default GitHub Actions
+            # runner font, so chart titles use the coin's ticker symbol (Latin).
+            ax.set_title(f"#1 {tier_name[0]} - {sym}", fontsize=11)
+            ax.legend(fontsize=8, loc="upper left")
+            ax.tick_params(labelsize=8)
+        except Exception as e:  # noqa: BLE001
+            print(f"chart generation failed for {r['market']}: {e}")
+            ax.text(0.5, 0.5, "chart failed", ha="center", va="center")
+
+    fig.suptitle("Top-1 pick per tier - last 30 days", fontsize=13)
+    fig.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=130)
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
 def won(n):
     if n is None:
         return "-"
@@ -491,6 +550,19 @@ def main():
     message = "\n".join(lines)
     print(message)
     send_telegram("<b>오늘의 크립토 추천 코인</b>", message)
+
+    # ---- chart image: #1 pick per tier ----
+    try:
+        top_picks = []
+        for tier_name in ["대형", "중형", "소형"]:
+            picks = top5_by_group[tier_name]
+            if picks:
+                top_picks.append((tier_name, picks[0]))
+        img = generate_chart_image(top_picks)
+        if img:
+            send_telegram_photo(img, caption="그룹별 1위 코인 최근 30일 차트 (지지=빨강, 저항=초록)")
+    except Exception as e:  # noqa: BLE001
+        print(f"chart step failed: {e}")
 
 
 if __name__ == "__main__":
