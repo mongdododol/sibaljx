@@ -24,7 +24,7 @@ import math
 import os
 import random
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import matplotlib
 matplotlib.use("Agg")
@@ -47,6 +47,34 @@ TIER_RANK_BOUNDS = [
     (60, "중형"),
     (150, "소형"),
 ]
+
+# Raised from 55 -> 65: fewer "recommended" picks, but each one requires a
+# stronger probability signal. Simple lever to trade quantity for precision.
+RECOMMEND_THRESHOLD = 65
+
+SECTOR_MAP = {
+    "BTC": "결제/메이저", "LTC": "결제/메이저", "BCH": "결제/메이저", "BSV": "결제/메이저", "DASH": "결제/메이저",
+    "DOGE": "밈코인", "SHIB": "밈코인", "PEPE": "밈코인", "BONK": "밈코인", "WIF": "밈코인", "FLOKI": "밈코인",
+    "ETH": "레이어1", "SOL": "레이어1", "ADA": "레이어1", "AVAX": "레이어1", "DOT": "레이어1", "ATOM": "레이어1",
+    "NEAR": "레이어1", "SUI": "레이어1", "TON": "레이어1", "KLAY": "레이어1", "APT": "레이어1", "SEI": "레이어1",
+    "EOS": "레이어1", "XTZ": "레이어1", "QTUM": "레이어1", "ONT": "레이어1", "FLOW": "레이어1", "TIA": "레이어1",
+    "TRX": "결제/송금", "XRP": "결제/송금", "XLM": "결제/송금", "XDC": "결제/송금", "ALGO": "결제/송금", "HBAR": "결제/송금",
+    "ICP": "인프라", "FTM": "인프라", "WAVES": "인프라", "ZIL": "인프라",
+    "ARB": "레이어2", "OP": "레이어2", "STRK": "레이어2", "ZK": "레이어2", "MATIC": "레이어2", "POL": "레이어2",
+    "UNI": "디파이", "SUSHI": "디파이", "CAKE": "디파이", "AAVE": "디파이", "MKR": "디파이", "CRV": "디파이",
+    "COMP": "디파이", "SNX": "디파이", "YFI": "디파이", "LDO": "디파이", "JUP": "디파이", "ENA": "디파이", "JTO": "디파이",
+    "INJ": "디파이파생", "HYPE": "디파이파생", "DYDX": "디파이파생", "GMX": "디파이파생",
+    "LINK": "오라클", "GRT": "오라클", "PYTH": "오라클", "BAND": "오라클",
+    "TAO": "AI", "FET": "AI", "RENDER": "AI", "AGIX": "AI", "OCEAN": "AI", "ARKM": "AI", "WLD": "AI",
+    "SAND": "메타버스/게임", "MANA": "메타버스/게임", "AXS": "메타버스/게임", "GALA": "메타버스/게임",
+    "ENJ": "메타버스/게임", "IMX": "메타버스/게임", "CHZ": "메타버스/게임", "WAX": "메타버스/게임",
+    "FIL": "스토리지", "STORJ": "스토리지", "AR": "스토리지", "ICX": "스토리지", "SC": "스토리지",
+    "ONDO": "RWA", "POLYX": "RWA",
+}
+
+
+def get_sector(sym):
+    return SECTOR_MAP.get(sym, "기타")
 
 
 def tier_for_rank(rank):
@@ -227,6 +255,16 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
     resistance = max(highs[-20:])
     support = min(lows[-20:])
 
+    # Pump/spike detection: a huge single-day move on abnormal volume looks
+    # good on paper (high recent "return") but is a classic setup for a sharp
+    # reversal, not a stable uptrend - so it's flagged separately rather than
+    # folded into the normal recommendation logic.
+    day_return = (closes[-1] - closes[-2]) / closes[-2] if len(closes) >= 2 and closes[-2] else 0.0
+    prior20_vol = volumes[-21:-1] if len(volumes) >= 21 else volumes[:-1]
+    avg_prior20_vol = sum(prior20_vol) / len(prior20_vol) if prior20_vol else 0
+    vol_spike_ratio = (volumes[-1] / avg_prior20_vol) if avg_prior20_vol > 0 else 1.0
+    pump_warning = day_return >= 0.15 and vol_spike_ratio >= 3.0
+
     return {
         "current_price": current_price,
         "up_pct": up_pct,
@@ -239,6 +277,8 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
         "rsi14": rsi14,
         "resistance": resistance,
         "support": support,
+        "day_return": day_return,
+        "pump_warning": pump_warning,
     }
 
 
@@ -299,6 +339,7 @@ def generate_chart_image(top_picks):
     if n == 1:
         axes = [axes]
 
+    tier_label_en = {"대형": "Large", "중형": "Mid", "소형": "Small"}
     for ax, (tier_name, r) in zip(axes, top_picks):
         try:
             candles = fetch_candles(r["market"], 30)
@@ -309,8 +350,8 @@ def generate_chart_image(top_picks):
             ax.axhline(r["resistance"], color="#16A34A", linestyle="--", linewidth=1, label="Resistance")
             ax.scatter([len(closes) - 1], [closes[-1]], color="#111827", zorder=5)
             # Korean text isn't guaranteed to render on the default GitHub Actions
-            # runner font, so chart titles use the coin's ticker symbol (Latin).
-            ax.set_title(f"#1 {tier_name[0]} - {sym}", fontsize=11)
+            # runner font, so chart titles use English tier labels + ticker symbol.
+            ax.set_title(f"#1 {tier_label_en.get(tier_name, tier_name)} - {sym}", fontsize=11)
             ax.legend(fontsize=8, loc="upper left")
             ax.tick_params(labelsize=8)
         except Exception as e:  # noqa: BLE001
@@ -324,6 +365,34 @@ def generate_chart_image(top_picks):
     plt.close(fig)
     buf.seek(0)
     return buf.read()
+
+
+def send_weekly_summary(records, now_ms):
+    """A once-a-week (Sunday, KST) roll-up: overall + per-tier accuracy over the
+    trailing 7 days, so trends are easier to see than digging through daily messages."""
+    week_ago = now_ms - 7 * 86400000
+    recent = [r for r in records if r.get("settled") and r["targetTimestamp"] >= week_ago]
+    if not recent:
+        send_telegram(
+            "<b>📅 주간 요약</b>",
+            "지난 7일간 만기된 추천 기록이 아직 없습니다. 다음 주에 다시 확인해드릴게요.",
+        )
+        return
+
+    lines = ["📅 <b>주간 요약 (최근 7일)</b>", ""]
+    overall_hits = sum(1 for r in recent if r.get("hit"))
+    lines.append(f"전체: <b>{overall_hits}/{len(recent)}건 적중 ({overall_hits/len(recent)*100:.1f}%)</b>")
+    lines.append("")
+    for tier_name in ["대형", "중형", "소형"]:
+        tier_recs = [r for r in recent if r["tier"] == tier_name]
+        if not tier_recs:
+            lines.append(f"{tier_name}: 만기 기록 없음")
+            continue
+        hits = sum(1 for r in tier_recs if r.get("hit"))
+        lines.append(f"{tier_name}: {hits}/{len(tier_recs)}건 ({hits/len(tier_recs)*100:.1f}%)")
+    lines.append("")
+    lines.append("⚠️ 표본이 적을 땐 수치가 크게 흔들릴 수 있습니다. 참고용으로만 봐주세요.")
+    send_telegram("<b>📅 주간 요약</b>", "\n".join(lines))
 
 
 def won(n):
@@ -365,6 +434,7 @@ def main():
 
     btc_result = simulate("KRW-BTC")
     btc_return_30 = btc_result["coin_return_30"]
+    btc_trend_dir = btc_result["trend_dir"]
 
     results_by_group = {"대형": [], "중형": [], "소형": []}
     for tier_name, coins in groups.items():
@@ -379,6 +449,7 @@ def main():
                 {
                     "market": m["market"],
                     "koName": m["korean_name"],
+                    "sector": get_sector(sym_of(m["market"])),
                     "currentPrice": r["current_price"],
                     "upPct": r["up_pct"],
                     "p50": r["p50"],
@@ -390,6 +461,8 @@ def main():
                     "rsi14": r["rsi14"],
                     "resistance": r["resistance"],
                     "support": r["support"],
+                    "dayReturn": r["day_return"],
+                    "pumpWarning": r["pump_warning"],
                 }
             )
             time.sleep(0.05)  # be polite to the public API
@@ -410,8 +483,13 @@ def main():
     def score_and_sort(arr):
         for r in arr:
             bonus = fg_bonus
+            # BTC regime filter: an altcoin "uptrend" signal is less trustworthy
+            # when BTC itself is in a downtrend, since alts overwhelmingly
+            # correlate with BTC's direction. Full bonus only when BTC agrees
+            # (or is at least not clearly bearish).
+            btc_bearish = btc_trend_dir == "하락 추세 연장 가능성"
             if r["trendDir"] == "상승 추세 연장 가능성":
-                bonus += 15
+                bonus += 5 if btc_bearish else 15
             elif r["trendDir"] == "하락 추세 연장 가능성":
                 bonus -= 15
             if r["volumeRising"]:
@@ -432,9 +510,14 @@ def main():
                     bonus += 5
                 elif rsi_val >= 70:
                     bonus -= 8
+            if r["pumpWarning"]:
+                bonus -= 20  # sharp single-day spike on abnormal volume - treat as caution, not signal
             r["score"] = r["upPct"] + bonus
-            r["recommended"] = r["trendDir"] == "상승 추세 연장 가능성" and r["upPct"] >= 55 and (
-                rsi_val is None or rsi_val < 70
+            r["recommended"] = (
+                r["trendDir"] == "상승 추세 연장 가능성"
+                and r["upPct"] >= RECOMMEND_THRESHOLD
+                and (rsi_val is None or rsi_val < 70)
+                and not r["pumpWarning"]
             )
             tags = []
             if r["volumeRising"]:
@@ -449,6 +532,10 @@ def main():
                 tags.append("RSI과매도")
             elif rsi_val is not None and rsi_val >= 70:
                 tags.append("RSI과매수(주의)")
+            if r["trendDir"] == "상승 추세 연장 가능성" and btc_bearish:
+                tags.append("BTC약세국면(신뢰도↓)")
+            if r["pumpWarning"]:
+                tags.append("⚠️급등주의")
             r["factorTags"] = tags
         arr.sort(key=lambda r: r["score"], reverse=True)
         return arr[:5]
@@ -510,19 +597,36 @@ def main():
     if fg_value is not None:
         fg_emoji = "😱" if fg_value <= 25 else ("🤑" if fg_value >= 75 else "😐")
         lines.append(f"{fg_emoji} 공포탐욕지수: <b>{fg_value}</b> ({fg_label})")
-        lines.append("")
+    btc_emoji = "🟢" if btc_trend_dir == "상승 추세 연장 가능성" else ("🔴" if btc_trend_dir == "하락 추세 연장 가능성" else "🟡")
+    lines.append(f"{btc_emoji} BTC 국면: {btc_trend_dir}")
+    lines.append("")
+
     for tier_name in ["대형", "중형", "소형"]:
         emoji = TIER_EMOJI.get(tier_name, "")
-        lines.append(f"{emoji} <b>{tier_name} TOP5</b>")
+        recent_settled = [
+            rec for rec in records
+            if rec.get("settled") and rec["tier"] == tier_name
+            and rec["targetTimestamp"] >= now_ms - 7 * 86400000
+        ]
+        recent_hits = sum(1 for rec in recent_settled if rec.get("hit"))
+        recent_txt = (
+            f" (최근7일 적중률 {recent_hits/len(recent_settled)*100:.0f}%, {len(recent_settled)}건)"
+            if len(recent_settled) >= 3 else ""
+        )
+        lines.append(f"{emoji} <b>{tier_name} TOP5</b>{recent_txt}")
+
         picks = top5_by_group[tier_name]
-        if not picks:
+        normal_picks = [r for r in picks if not r["pumpWarning"]]
+        warn_picks = [r for r in picks if r["pumpWarning"]]
+
+        if not normal_picks:
             lines.append("  (분석 결과 없음)")
-        for i, r in enumerate(picks, 1):
+        for i, r in enumerate(normal_picks, 1):
             tag = " ⭐추천" if r["recommended"] else ""
             rsi_txt = f"{r['rsi14']:.0f}" if r.get("rsi14") is not None else "N/A"
             factor_txt = " · ".join(r["factorTags"]) if r["factorTags"] else "없음"
             name = html.escape(r["koName"])
-            lines.append(f"<b>{i}. {name}({sym_of(r['market'])})</b>{tag}")
+            lines.append(f"<b>{i}. {name}({sym_of(r['market'])})</b> [{r['sector']}]{tag}")
             lines.append(
                 f"　현재가 {won(r['currentPrice'])} | 상승확률 <b>{r['upPct']:.1f}%</b> | {r['trendDir']}"
             )
@@ -532,6 +636,16 @@ def main():
             lines.append(f"　지지 {won(r['support'])} ~ 저항 {won(r['resistance'])} | RSI {rsi_txt}")
             lines.append(f"　보정요인: {factor_txt}")
             lines.append("")
+
+        if warn_picks:
+            lines.append("　⚠️ <b>단기 급등 주의 (추천 제외)</b>")
+            for r in warn_picks:
+                name = html.escape(r["koName"])
+                lines.append(
+                    f"　- {name}({sym_of(r['market'])}): 전일대비 +{r['dayReturn']*100:.1f}%, "
+                    f"거래량 급증 → 되돌림 위험"
+                )
+            lines.append("")
         lines.append("")
 
     if settled_lines:
@@ -540,9 +654,9 @@ def main():
         lines.append("")
 
     if overall_acc is not None:
-        lines.append(f"📈 누적 적중률: <b>{overall_acc:.1f}%</b> ({len(hits)}/{len(settled_all)}건)")
+        lines.append(f"📈 전체 누적 적중률: <b>{overall_acc:.1f}%</b> ({len(hits)}/{len(settled_all)}건)")
     else:
-        lines.append("📈 누적 적중률: 아직 없음 (오늘 추천이 7일 뒤부터 순차적으로 채점됩니다)")
+        lines.append("📈 전체 누적 적중률: 아직 없음 (오늘 추천이 7일 뒤부터 순차적으로 채점됩니다)")
 
     lines.append("")
     lines.append("⚠️ 과거 데이터 기반 통계 모델이며 투자 조언이 아닙니다.")
@@ -551,13 +665,21 @@ def main():
     print(message)
     send_telegram("<b>오늘의 크립토 추천 코인</b>", message)
 
-    # ---- chart image: #1 pick per tier ----
+    # ---- weekly summary (Sundays, KST) ----
+    try:
+        kst_now = datetime.now(timezone.utc) + timedelta(hours=9)
+        if kst_now.weekday() == 6:  # Sunday
+            send_weekly_summary(records, now_ms)
+    except Exception as e:  # noqa: BLE001
+        print(f"weekly summary failed: {e}")
+
+    # ---- chart image: #1 pick per tier (normal picks only, skip pump-flagged) ----
     try:
         top_picks = []
         for tier_name in ["대형", "중형", "소형"]:
-            picks = top5_by_group[tier_name]
-            if picks:
-                top_picks.append((tier_name, picks[0]))
+            normal = [r for r in top5_by_group[tier_name] if not r["pumpWarning"]]
+            if normal:
+                top_picks.append((tier_name, normal[0]))
         img = generate_chart_image(top_picks)
         if img:
             send_telegram_photo(img, caption="그룹별 1위 코인 최근 30일 차트 (지지=빨강, 저항=초록)")
