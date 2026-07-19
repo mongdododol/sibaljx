@@ -48,9 +48,10 @@ TIER_RANK_BOUNDS = [
     (150, "소형"),
 ]
 
-# Raised from 55 -> 65: fewer "recommended" picks, but each one requires a
-# stronger probability signal. Simple lever to trade quantity for precision.
-RECOMMEND_THRESHOLD = 65
+# Raised again: precision over quantity. Fewer "recommended" picks, but each
+# one has to clear a higher probability bar AND pass the entry-timing checks
+# added below (not already extended near resistance / far above its average).
+RECOMMEND_THRESHOLD = 70
 
 SECTOR_MAP = {
     "BTC": "결제/메이저", "LTC": "결제/메이저", "BCH": "결제/메이저", "BSV": "결제/메이저", "DASH": "결제/메이저",
@@ -265,6 +266,17 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
     vol_spike_ratio = (volumes[-1] / avg_prior20_vol) if avg_prior20_vol > 0 else 1.0
     pump_warning = day_return >= 0.15 and vol_spike_ratio >= 3.0
 
+    # Entry timing: where does the current price sit within its recent
+    # support-resistance range, and how far is it stretched above its own
+    # 20-day average? Buying near resistance / far above the average is a
+    # worse entry even when the probability model and trend both look fine.
+    if resistance > support:
+        position_ratio = (current_price - support) / (resistance - support)
+    else:
+        position_ratio = 0.5
+    sma20_now = s20_series[-1] if s20_series else None
+    pct_above_sma20 = ((current_price - sma20_now) / sma20_now) if sma20_now else 0.0
+
     return {
         "current_price": current_price,
         "up_pct": up_pct,
@@ -279,6 +291,8 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
         "support": support,
         "day_return": day_return,
         "pump_warning": pump_warning,
+        "position_ratio": position_ratio,
+        "pct_above_sma20": pct_above_sma20,
     }
 
 
@@ -463,6 +477,8 @@ def main():
                     "support": r["support"],
                     "dayReturn": r["day_return"],
                     "pumpWarning": r["pump_warning"],
+                    "positionRatio": r["position_ratio"],
+                    "pctAboveSma20": r["pct_above_sma20"],
                 }
             )
             time.sleep(0.05)  # be polite to the public API
@@ -512,12 +528,27 @@ def main():
                     bonus -= 8
             if r["pumpWarning"]:
                 bonus -= 20  # sharp single-day spike on abnormal volume - treat as caution, not signal
+
+            # Entry timing: reward being near support (room to run before resistance),
+            # penalize being already stretched near resistance or far above the 20-day
+            # average - a "good" trend is still a bad trade at a bad price.
+            pos_ratio = r["positionRatio"]
+            if pos_ratio <= 0.4:
+                bonus += 8
+            elif pos_ratio >= 0.8:
+                bonus -= 12
+            if r["pctAboveSma20"] > 0.08:
+                bonus -= 8
+
             r["score"] = r["upPct"] + bonus
             r["recommended"] = (
                 r["trendDir"] == "상승 추세 연장 가능성"
                 and r["upPct"] >= RECOMMEND_THRESHOLD
-                and (rsi_val is None or rsi_val < 70)
+                and (rsi_val is None or 25 < rsi_val < 70)
                 and not r["pumpWarning"]
+                and pos_ratio < 0.75                      # not already sitting near resistance
+                and r["pctAboveSma20"] <= 0.08             # not badly overextended vs its own average
+                and not (btc_bearish and r["relStrength"] <= 0)  # if BTC's weak, demand relative strength
             )
             tags = []
             if r["volumeRising"]:
@@ -536,6 +567,12 @@ def main():
                 tags.append("BTC약세국면(신뢰도↓)")
             if r["pumpWarning"]:
                 tags.append("⚠️급등주의")
+            if pos_ratio <= 0.4:
+                tags.append("지지선근접(진입양호)")
+            elif pos_ratio >= 0.8:
+                tags.append("고점권(진입주의)")
+            if r["pctAboveSma20"] > 0.08:
+                tags.append("이평선이격큼(과열)")
             r["factorTags"] = tags
         arr.sort(key=lambda r: r["score"], reverse=True)
         return arr[:5]
@@ -634,6 +671,7 @@ def main():
                 f"　목표가(중앙값/추세) {won(r['p50'])} / {won(r['trendProjection'])}"
             )
             lines.append(f"　지지 {won(r['support'])} ~ 저항 {won(r['resistance'])} | RSI {rsi_txt}")
+            lines.append(f"　진입 위치: 지지~저항 구간 내 {r['positionRatio']*100:.0f}% 지점")
             lines.append(f"　보정요인: {factor_txt}")
             lines.append("")
 
