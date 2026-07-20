@@ -1,14 +1,1 @@
-[
-  {
-    "market": "KRW-AAVE",
-    "koName": "에이브",
-    "tier": "중형",
-    "logDateStr": "2026-07-17 02:29",
-    "logTimestamp": 1784255393924,
-    "targetTimestamp": 1784860193924,
-    "priceAtLog": 133800.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null
-  }
-]
+[]

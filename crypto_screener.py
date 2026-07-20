@@ -381,30 +381,62 @@ def generate_chart_image(top_picks):
     return buf.read()
 
 
+WEEKLY_ACC_TARGET = 70
+
+
 def send_weekly_summary(records, now_ms):
     """A once-a-week (Sunday, KST) roll-up: overall + per-tier accuracy over the
-    trailing 7 days, so trends are easier to see than digging through daily messages."""
+    trailing 7 days (checked against a 70% target), plus which coins got
+    recommended most often that week."""
     week_ago = now_ms - 7 * 86400000
-    recent = [r for r in records if r.get("settled") and r["targetTimestamp"] >= week_ago]
-    if not recent:
+    recent_settled = [r for r in records if r.get("settled") and r["targetTimestamp"] >= week_ago]
+    recent_logged = [r for r in records if r.get("logTimestamp", 0) >= week_ago]
+
+    if not recent_settled and not recent_logged:
         send_telegram(
             "<b>📅 주간 요약</b>",
-            "지난 7일간 만기된 추천 기록이 아직 없습니다. 다음 주에 다시 확인해드릴게요.",
+            "지난 7일간 기록이 아직 없습니다. 다음 주에 다시 확인해드릴게요.",
         )
         return
 
     lines = ["📅 <b>주간 요약 (최근 7일)</b>", ""]
-    overall_hits = sum(1 for r in recent if r.get("hit"))
-    lines.append(f"전체: <b>{overall_hits}/{len(recent)}건 적중 ({overall_hits/len(recent)*100:.1f}%)</b>")
+
+    def verdict(hits, total, min_n):
+        if total < min_n:
+            return f"{hits}/{total}건 ({hits/total*100:.1f}%) · 표본부족(판단보류, {min_n}건 이상 필요)" if total else "만기 기록 없음"
+        pct = hits / total * 100
+        mark = "✅ 목표달성" if pct >= WEEKLY_ACC_TARGET else "⚠️ 목표미달"
+        return f"{hits}/{total}건 ({pct:.1f}%) · {mark} (목표 {WEEKLY_ACC_TARGET}%)"
+
+    if recent_settled:
+        overall_hits = sum(1 for r in recent_settled if r.get("hit"))
+        lines.append(f"전체 적중률: <b>{verdict(overall_hits, len(recent_settled), 5)}</b>")
+        for tier_name in ["대형", "중형", "소형"]:
+            tier_recs = [r for r in recent_settled if r["tier"] == tier_name]
+            hits = sum(1 for r in tier_recs if r.get("hit"))
+            lines.append(f"　{tier_name}: {verdict(hits, len(tier_recs), 3)}")
+    else:
+        lines.append("전체 적중률: 이번 주에 만기된 기록 없음 (7일 뒤부터 채점됩니다)")
     lines.append("")
-    for tier_name in ["대형", "중형", "소형"]:
-        tier_recs = [r for r in recent if r["tier"] == tier_name]
-        if not tier_recs:
-            lines.append(f"{tier_name}: 만기 기록 없음")
-            continue
-        hits = sum(1 for r in tier_recs if r.get("hit"))
-        lines.append(f"{tier_name}: {hits}/{len(tier_recs)}건 ({hits/len(tier_recs)*100:.1f}%)")
-    lines.append("")
+
+    # Most frequently recommended coins this week - repeated appearances can mean
+    # a persistent trend, or just the model repeatedly liking the same setup.
+    if recent_logged:
+        counts = {}
+        for r in recent_logged:
+            key = (r["market"], r["koName"], r["tier"])
+            counts[key] = counts.get(key, 0) + 1
+        ranked = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+        repeats = [(k, v) for k, v in ranked if v >= 2][:10]
+        if repeats:
+            lines.append("🔁 <b>이번 주 반복 추천 코인</b>")
+            for (market, ko_name, tier_name), cnt in repeats:
+                name = html.escape(ko_name)
+                lines.append(f"　{name}({market.replace('KRW-', '')}, {tier_name}): {cnt}회")
+        else:
+            lines.append("🔁 이번 주는 2회 이상 반복 추천된 코인이 없습니다.")
+        lines.append("")
+
     lines.append("⚠️ 표본이 적을 땐 수치가 크게 흔들릴 수 있습니다. 참고용으로만 봐주세요.")
     send_telegram("<b>📅 주간 요약</b>", "\n".join(lines))
 
