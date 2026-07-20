@@ -2,7 +2,7 @@ name: Daily Crypto Screener
 
 on:
   schedule:
-    - cron: '0 22 * * *'
+    - cron: '13 23 * * *'
   workflow_dispatch: {}
 
 jobs:
