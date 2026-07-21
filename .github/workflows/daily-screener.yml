@@ -2,6 +2,9 @@ name: Daily Crypto Screener
 
 on:
   schedule:
+    # 23:13 UTC = 08:13 KST (next day). Off the top of the hour on purpose -
+    # GitHub's scheduled runs queue up heavily at :00, so a non-zero minute
+    # usually starts closer to on-time. Change the hour to shift delivery time.
     - cron: '13 23 * * *'
   workflow_dispatch: {}
 
@@ -17,6 +20,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Korean font (for chart images)
+        run: sudo apt-get update -y && sudo apt-get install -y fonts-nanum
+
       - run: pip install -r requirements.txt
 
       - name: Run screener
@@ -25,13 +31,13 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python crypto_screener.py
 
-      - name: Commit updated predictions.json
+      - name: Commit updated predictions.json and factor_weights.json
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add predictions.json
+          git add predictions.json factor_weights.json 2>/dev/null || true
           if ! git diff --cached --quiet; then
-            git commit -m "Update predictions [skip ci]"
+            git commit -m "Update predictions/weights [skip ci]"
             git push
           else
             echo "No changes to commit."
