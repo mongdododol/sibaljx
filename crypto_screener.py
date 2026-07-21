@@ -29,15 +29,53 @@ from datetime import datetime, timedelta, timezone
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+import glob
+
+# Try to register a Korean font (installed via `apt-get install fonts-nanum` in the
+# workflow) so chart images can show Korean text. If it's not found (e.g. running
+# locally on a machine without that package), charts fall back to symbol-only /
+# English text rather than crashing or showing tofu boxes.
+KOREAN_FONT_NAME = None
+for path in glob.glob("/usr/share/fonts/truetype/nanum/Nanum*.ttf") + glob.glob(
+    "/usr/share/fonts/**/Nanum*.ttf", recursive=True
+):
+    try:
+        fm.fontManager.addfont(path)
+        KOREAN_FONT_NAME = fm.FontProperties(fname=path).get_name()
+        matplotlib.rcParams["font.family"] = KOREAN_FONT_NAME
+        matplotlib.rcParams["axes.unicode_minus"] = False
+        break
+    except Exception:  # noqa: BLE001
+        continue
 
 import requests
 
 UPBIT_BASE = "https://api.upbit.com/v1"
 COINGECKO_MARKETS_URL = "https://api.coingecko.com/api/v3/coins/markets"
 STATE_FILE = os.path.join(os.path.dirname(__file__), "predictions.json")
+WEIGHTS_FILE = os.path.join(os.path.dirname(__file__), "factor_weights.json")
 HORIZON_DAYS = 7
 NUM_PATHS = 300
 PER_GROUP_CAP = int(os.environ.get("PER_GROUP_CAP", "15"))
+
+# Starting-point weights for each factor tag. These are the honest "best guess"
+# values used until enough real settled results exist to replace them with
+# empirically measured adjustments (see recompute_factor_weights).
+DEFAULT_FACTOR_WEIGHTS = {
+    "거래량↑": 5,
+    "기간정합": 5,
+    "BTC대비강세": 5,
+    "BTC대비약세": -5,
+    "RSI과매도": 5,
+    "RSI과매수(주의)": -8,
+    "지지선근접(진입양호)": 8,
+    "고점권(진입주의)": -12,
+    "이평선이격큼(과열)": -8,
+    "BTC약세국면(신뢰도↓)": -10,  # note: applied as part of the trend bonus reduction, not a tag lookup
+}
+MIN_SAMPLE_PER_FACTOR = 15  # don't trust a factor's measured effect until it has this many settled cases
+MIN_TOTAL_SETTLED_FOR_TUNING = 20  # don't touch anything until the whole system has this many settled cases
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
@@ -191,6 +229,36 @@ def fetch_fear_greed():
     return _FEAR_GREED_CACHE
 
 
+def fetch_kimchi_premium():
+    """Compares Upbit's own BTC/KRW price against Binance's global BTC/USDT price
+    (converted to KRW using Upbit's own USDT/KRW market, so both legs come from
+    the same exchange's live order book and stay internally consistent). A high
+    premium means the Korean market is trading BTC well above the global price -
+    historically a sign of local overheating that can unwind sharply; a very low
+    or negative premium can mean local panic/capitulation. This is a market-wide
+    signal, not specific to any one altcoin."""
+    try:
+        upbit_btc = requests.get(
+            f"{UPBIT_BASE}/ticker", params={"markets": "KRW-BTC"}, timeout=15
+        ).json()[0]["trade_price"]
+        upbit_usdt = requests.get(
+            f"{UPBIT_BASE}/ticker", params={"markets": "KRW-USDT"}, timeout=15
+        ).json()[0]["trade_price"]
+        binance_btc = float(
+            requests.get(
+                "https://api.binance.com/api/v3/ticker/price",
+                params={"symbol": "BTCUSDT"},
+                timeout=15,
+            ).json()["price"]
+        )
+        implied_krw = binance_btc * upbit_usdt
+        premium_pct = (upbit_btc - implied_krw) / implied_krw * 100
+        return {"premium_pct": premium_pct, "upbit_btc": upbit_btc, "binance_btc_krw": implied_krw}
+    except Exception as e:  # noqa: BLE001
+        print(f"kimchi premium fetch failed: {e}")
+        return {"premium_pct": None, "upbit_btc": None, "binance_btc_krw": None}
+
+
 def linear_slope(arr):
     n = len(arr)
     if n < 2:
@@ -308,6 +376,55 @@ def save_state(records):
         json.dump(records, f, ensure_ascii=False, indent=2)
 
 
+def load_factor_weights():
+    if os.path.exists(WEIGHTS_FILE):
+        try:
+            with open(WEIGHTS_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+            # fill in anything missing (e.g. a new factor added later) with the default
+            weights = dict(DEFAULT_FACTOR_WEIGHTS)
+            weights.update(loaded)
+            return weights
+        except Exception as e:  # noqa: BLE001
+            print(f"weights load failed, using defaults: {e}")
+    return dict(DEFAULT_FACTOR_WEIGHTS)
+
+
+def save_factor_weights(weights):
+    with open(WEIGHTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(weights, f, ensure_ascii=False, indent=2)
+
+
+def recompute_factor_weights(records):
+    """Once enough settled results exist, measure whether each factor tag's
+    presence actually correlated with higher/lower hit rates than baseline,
+    and adjust its weight accordingly. Factors without enough individual
+    samples keep their default weight rather than being guessed at."""
+    settled = [r for r in records if r.get("settled")]
+    if len(settled) < MIN_TOTAL_SETTLED_FOR_TUNING:
+        return dict(DEFAULT_FACTOR_WEIGHTS), None
+
+    baseline_rate = sum(1 for r in settled if r.get("hit")) / len(settled)
+    weights = {}
+    report_lines = []
+    for tag, default_w in DEFAULT_FACTOR_WEIGHTS.items():
+        with_tag = [r for r in settled if tag in (r.get("factorTags") or [])]
+        if len(with_tag) < MIN_SAMPLE_PER_FACTOR:
+            weights[tag] = default_w
+            continue
+        hits = sum(1 for r in with_tag if r.get("hit"))
+        rate = hits / len(with_tag)
+        diff_pp = (rate - baseline_rate) * 100  # percentage points vs baseline
+        adjustment = max(-15.0, min(20.0, diff_pp * 0.5))
+        weights[tag] = round(adjustment, 1)
+        report_lines.append(
+            f"　{tag}: {len(with_tag)}건, 적중률 {rate*100:.1f}% (기준선 {baseline_rate*100:.1f}%) → 가중치 {default_w}→{weights[tag]}"
+        )
+
+    report = "\n".join(report_lines) if report_lines else None
+    return weights, report
+
+
 def send_telegram(title, body):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set - skipping message.\n--- message ---\n" + body)
@@ -339,6 +456,85 @@ def send_telegram_photo(image_bytes, caption=""):
         )
     except Exception as e:  # noqa: BLE001
         print(f"telegram photo send failed: {e}")
+
+
+def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_pct, today_str):
+    """One compact image with all three tier groups side by side, replacing the
+    long per-coin text blocks. Each row: rank, coin, price, up-probability, a
+    small colored bar showing where price sits in its support-resistance range,
+    and a star if it cleared the 'recommended' bar."""
+    TIER_COLORS = {"대형": "#2563EB", "중형": "#16A34A", "소형": "#D97706"}
+    tiers = ["대형", "중형", "소형"]
+    max_rows = max((len(top5_by_group[t]) for t in tiers), default=0)
+    max_rows = max(max_rows, 1)
+
+    fig_h = 2.0 + max_rows * 0.9
+    fig, axes = plt.subplots(1, 3, figsize=(13, fig_h))
+
+    for ax, tier_name in zip(axes, tiers):
+        picks = top5_by_group[tier_name]
+        color = TIER_COLORS[tier_name]
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, max_rows + 1)
+        ax.axis("off")
+        ax.add_patch(plt.Rectangle((0, max_rows), 1, 1, color=color, zorder=0))
+        ax.text(0.5, max_rows + 0.5, f"{tier_name} TOP{len(picks) or 0}", ha="center", va="center",
+                fontsize=13, color="white", fontweight="bold", zorder=1)
+
+        if not picks:
+            ax.text(0.5, max_rows / 2, "결과 없음", ha="center", va="center", fontsize=10, color="#888")
+            continue
+
+        for i, r in enumerate(picks):
+            y = max_rows - i - 0.5
+            row_bg = "#F0FDF4" if r["recommended"] else ("#FFFFFF" if i % 2 == 0 else "#F7F7F9")
+            ax.add_patch(plt.Rectangle((0, y - 0.45), 1, 0.9, color=row_bg, zorder=0, ec="#E5E7EB", lw=0.5))
+
+            star = " ⭐" if r["recommended"] else ""
+            name = f"{i+1}. {r['koName']}({sym_of_market(r['market'])}){star}"
+            ax.text(0.03, y + 0.22, name, ha="left", va="center", fontsize=9.5, fontweight="bold")
+            ax.text(0.03, y - 0.12, f"{won_short(r['currentPrice'])}  |  상승 {r['upPct']:.0f}%",
+                    ha="left", va="center", fontsize=8.5, color="#333")
+
+            # entry-position mini bar: green near support, red near resistance
+            pos = r["positionRatio"]
+            bar_x0, bar_w = 0.62, 0.34
+            ax.add_patch(plt.Rectangle((bar_x0, y - 0.05), bar_w, 0.1, color="#E5E7EB", zorder=0))
+            marker_color = "#16A34A" if pos <= 0.4 else ("#DC2626" if pos >= 0.8 else "#D97706")
+            ax.add_patch(plt.Circle((bar_x0 + bar_w * pos, y), 0.09, color=marker_color, zorder=2))
+            ax.text(bar_x0 + bar_w / 2, y - 0.28, "지지 ← 진입위치 → 저항", ha="center", va="center",
+                    fontsize=6, color="#999")
+
+    header_bits = []
+    if fg_value is not None:
+        header_bits.append(f"공포탐욕 {fg_value}({fg_label})")
+    header_bits.append(f"BTC {btc_trend_dir}")
+    if kp_pct is not None:
+        header_bits.append(f"김프 {kp_pct:+.1f}%")
+    fig.suptitle(f"{today_str}  ·  " + " · ".join(header_bits), fontsize=11, y=1.02)
+    fig.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=140, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
+def sym_of_market(market):
+    return market.replace("KRW-", "")
+
+
+def won_short(n):
+    """Compact price format for chart labels (e.g. 8,200만원 / 1.2억원) - the
+    full won() formatter is too wide to fit in the card's narrow columns."""
+    if n is None:
+        return "-"
+    if n >= 1e8:
+        return f"{n/1e8:.2f}억"
+    if n >= 1e4:
+        return f"{n/1e4:.0f}만원"
+    return f"{round(n):,}원"
 
 
 def generate_chart_image(top_picks):
@@ -528,60 +724,22 @@ def main():
         elif fg_value >= 75:
             fg_bonus = -5  # Extreme Greed - mild caution tilt
 
+    kimchi = fetch_kimchi_premium()
+    kp_pct = kimchi.get("premium_pct")
+    # A sharply elevated Korea-vs-global premium has historically tended to
+    # unwind (premium collapses back toward 0 even if the global price is
+    # fine), so it's treated as a mild caution flag across the board - not a
+    # per-coin signal.
+    kp_bonus = -5 if (kp_pct is not None and kp_pct >= 5) else 0
+
+    WEIGHTS = load_factor_weights()
+
     def score_and_sort(arr):
         for r in arr:
-            bonus = fg_bonus
-            # BTC regime filter: an altcoin "uptrend" signal is less trustworthy
-            # when BTC itself is in a downtrend, since alts overwhelmingly
-            # correlate with BTC's direction. Full bonus only when BTC agrees
-            # (or is at least not clearly bearish).
-            btc_bearish = btc_trend_dir == "하락 추세 연장 가능성"
-            if r["trendDir"] == "상승 추세 연장 가능성":
-                bonus += 5 if btc_bearish else 15
-            elif r["trendDir"] == "하락 추세 연장 가능성":
-                bonus -= 15
-            if r["volumeRising"]:
-                bonus += 5
-            if r["multiAligned"]:
-                bonus += 5
-            if r["relStrength"] > 0.05:
-                bonus += 5
-            elif r["relStrength"] < -0.05:
-                bonus -= 5
-            # RSI: oversold coins get a small mean-reversion tilt (unless the trend is
-            # clearly bearish, in which case "oversold" may just mean "still falling").
-            # Overbought coins get a caution penalty - even a strong uptrend is a worse
-            # entry when already stretched.
             rsi_val = r.get("rsi14")
-            if rsi_val is not None:
-                if rsi_val <= 30 and r["trendDir"] != "하락 추세 연장 가능성":
-                    bonus += 5
-                elif rsi_val >= 70:
-                    bonus -= 8
-            if r["pumpWarning"]:
-                bonus -= 20  # sharp single-day spike on abnormal volume - treat as caution, not signal
-
-            # Entry timing: reward being near support (room to run before resistance),
-            # penalize being already stretched near resistance or far above the 20-day
-            # average - a "good" trend is still a bad trade at a bad price.
+            btc_bearish = btc_trend_dir == "하락 추세 연장 가능성"
             pos_ratio = r["positionRatio"]
-            if pos_ratio <= 0.4:
-                bonus += 8
-            elif pos_ratio >= 0.8:
-                bonus -= 12
-            if r["pctAboveSma20"] > 0.08:
-                bonus -= 8
 
-            r["score"] = r["upPct"] + bonus
-            r["recommended"] = (
-                r["trendDir"] == "상승 추세 연장 가능성"
-                and r["upPct"] >= RECOMMEND_THRESHOLD
-                and (rsi_val is None or 25 < rsi_val < 70)
-                and not r["pumpWarning"]
-                and pos_ratio < 0.75                      # not already sitting near resistance
-                and r["pctAboveSma20"] <= 0.08             # not badly overextended vs its own average
-                and not (btc_bearish and r["relStrength"] <= 0)  # if BTC's weak, demand relative strength
-            )
             tags = []
             if r["volumeRising"]:
                 tags.append("거래량↑")
@@ -595,16 +753,44 @@ def main():
                 tags.append("RSI과매도")
             elif rsi_val is not None and rsi_val >= 70:
                 tags.append("RSI과매수(주의)")
-            if r["trendDir"] == "상승 추세 연장 가능성" and btc_bearish:
-                tags.append("BTC약세국면(신뢰도↓)")
-            if r["pumpWarning"]:
-                tags.append("⚠️급등주의")
             if pos_ratio <= 0.4:
                 tags.append("지지선근접(진입양호)")
             elif pos_ratio >= 0.8:
                 tags.append("고점권(진입주의)")
             if r["pctAboveSma20"] > 0.08:
                 tags.append("이평선이격큼(과열)")
+            if r["trendDir"] == "상승 추세 연장 가능성" and btc_bearish:
+                tags.append("BTC약세국면(신뢰도↓)")
+            if r["pumpWarning"]:
+                tags.append("⚠️급등주의")
+
+            # Trend direction and pump warnings gate the whole recommendation, so they're
+            # scored directly rather than through the adaptive per-tag weight table.
+            bonus = fg_bonus + kp_bonus
+            if r["trendDir"] == "상승 추세 연장 가능성":
+                bonus += 15
+            elif r["trendDir"] == "하락 추세 연장 가능성":
+                bonus -= 15
+            if r["pumpWarning"]:
+                bonus -= 20
+
+            # Everything else uses the (possibly self-tuned) weight table - falls back to
+            # the static defaults until a factor has enough settled history to measure.
+            for tag in tags:
+                if tag == "⚠️급등주의":
+                    continue  # already penalized above via pumpWarning, avoid double-counting
+                bonus += WEIGHTS.get(tag, DEFAULT_FACTOR_WEIGHTS.get(tag, 0))
+
+            r["score"] = r["upPct"] + bonus
+            r["recommended"] = (
+                r["trendDir"] == "상승 추세 연장 가능성"
+                and r["upPct"] >= RECOMMEND_THRESHOLD
+                and (rsi_val is None or 25 < rsi_val < 70)
+                and not r["pumpWarning"]
+                and pos_ratio < 0.75                      # not already sitting near resistance
+                and r["pctAboveSma20"] <= 0.08             # not badly overextended vs its own average
+                and not (btc_bearish and r["relStrength"] <= 0)  # if BTC's weak, demand relative strength
+            )
             r["factorTags"] = tags
         arr.sort(key=lambda r: r["score"], reverse=True)
         return arr[:5]
@@ -650,6 +836,7 @@ def main():
                     "actualPrice": None,
                     "settled": False,
                     "hit": None,
+                    "factorTags": r.get("factorTags", []),
                 }
             )
 
@@ -660,74 +847,44 @@ def main():
     hits = [r for r in settled_all if r.get("hit")]
     overall_acc = (len(hits) / len(settled_all) * 100) if settled_all else None
 
-    # ---- compose notification ----
-    TIER_EMOJI = {"대형": "🔵", "중형": "🟢", "소형": "🟠"}
+    # ---- compose notification: short header text + image card (long per-coin
+    #      text blocks moved into the image so this doesn't run on forever) ----
     lines = [f"📊 <b>크립토 추천 스크리너</b>  {today_str}", ""]
     if fg_value is not None:
         fg_emoji = "😱" if fg_value <= 25 else ("🤑" if fg_value >= 75 else "😐")
         lines.append(f"{fg_emoji} 공포탐욕지수: <b>{fg_value}</b> ({fg_label})")
     btc_emoji = "🟢" if btc_trend_dir == "상승 추세 연장 가능성" else ("🔴" if btc_trend_dir == "하락 추세 연장 가능성" else "🟡")
     lines.append(f"{btc_emoji} BTC 국면: {btc_trend_dir}")
+    if kp_pct is not None:
+        kp_emoji = "🔥" if kp_pct >= 5 else ("🧊" if kp_pct <= -1 else "⚖️")
+        lines.append(f"{kp_emoji} 김치프리미엄: {kp_pct:+.2f}% (업비트 vs 바이낸스)")
     lines.append("")
+    lines.append("👇 그룹별 TOP5 요약 카드는 아래 이미지를 참고하세요.")
 
+    any_warn = False
     for tier_name in ["대형", "중형", "소형"]:
-        emoji = TIER_EMOJI.get(tier_name, "")
-        recent_settled = [
-            rec for rec in records
-            if rec.get("settled") and rec["tier"] == tier_name
-            and rec["targetTimestamp"] >= now_ms - 7 * 86400000
-        ]
-        recent_hits = sum(1 for rec in recent_settled if rec.get("hit"))
-        recent_txt = (
-            f" (최근7일 적중률 {recent_hits/len(recent_settled)*100:.0f}%, {len(recent_settled)}건)"
-            if len(recent_settled) >= 3 else ""
-        )
-        lines.append(f"{emoji} <b>{tier_name} TOP5</b>{recent_txt}")
-
-        picks = top5_by_group[tier_name]
-        normal_picks = [r for r in picks if not r["pumpWarning"]]
-        warn_picks = [r for r in picks if r["pumpWarning"]]
-
-        if not normal_picks:
-            lines.append("  (분석 결과 없음)")
-        for i, r in enumerate(normal_picks, 1):
-            tag = " ⭐추천" if r["recommended"] else ""
-            rsi_txt = f"{r['rsi14']:.0f}" if r.get("rsi14") is not None else "N/A"
-            factor_txt = " · ".join(r["factorTags"]) if r["factorTags"] else "없음"
-            name = html.escape(r["koName"])
-            lines.append(f"<b>{i}. {name}({sym_of(r['market'])})</b> [{r['sector']}]{tag}")
-            lines.append(
-                f"　현재가 {won(r['currentPrice'])} | 상승확률 <b>{r['upPct']:.1f}%</b> | {r['trendDir']}"
-            )
-            lines.append(
-                f"　목표가(중앙값/추세) {won(r['p50'])} / {won(r['trendProjection'])}"
-            )
-            lines.append(f"　지지 {won(r['support'])} ~ 저항 {won(r['resistance'])} | RSI {rsi_txt}")
-            lines.append(f"　진입 위치: 지지~저항 구간 내 {r['positionRatio']*100:.0f}% 지점")
-            lines.append(f"　보정요인: {factor_txt}")
-            lines.append("")
-
+        warn_picks = [r for r in top5_by_group[tier_name] if r["pumpWarning"]]
         if warn_picks:
-            lines.append("　⚠️ <b>단기 급등 주의 (추천 제외)</b>")
+            if not any_warn:
+                lines.append("")
+                lines.append("⚠️ <b>단기 급등 주의 (추천 제외)</b>")
+                any_warn = True
             for r in warn_picks:
                 name = html.escape(r["koName"])
                 lines.append(
-                    f"　- {name}({sym_of(r['market'])}): 전일대비 +{r['dayReturn']*100:.1f}%, "
-                    f"거래량 급증 → 되돌림 위험"
+                    f"　{tier_name} {name}({sym_of(r['market'])}): 전일대비 +{r['dayReturn']*100:.1f}%, 되돌림 위험"
                 )
-            lines.append("")
-        lines.append("")
 
     if settled_lines:
+        lines.append("")
         lines.append("🎯 <b>오늘 만기된 과거 추천 결과</b>")
         lines.extend(settled_lines)
-        lines.append("")
 
+    lines.append("")
     if overall_acc is not None:
         lines.append(f"📈 전체 누적 적중률: <b>{overall_acc:.1f}%</b> ({len(hits)}/{len(settled_all)}건)")
     else:
         lines.append("📈 전체 누적 적중률: 아직 없음 (오늘 추천이 7일 뒤부터 순차적으로 채점됩니다)")
-
     lines.append("")
     lines.append("⚠️ 과거 데이터 기반 통계 모델이며 투자 조언이 아닙니다.")
 
@@ -735,13 +892,28 @@ def main():
     print(message)
     send_telegram("<b>오늘의 크립토 추천 코인</b>", message)
 
-    # ---- weekly summary (Sundays, KST) ----
+    # ---- summary card image: all three tiers, one glance ----
+    try:
+        card_img = generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_pct, today_str)
+        if card_img:
+            send_telegram_photo(card_img, caption="그룹별 TOP5 요약 카드 (⭐=추천, 점 위치=지지~저항 구간 내 진입 위치)")
+    except Exception as e:  # noqa: BLE001
+        print(f"summary card step failed: {e}")
+
+    # ---- weekly summary + adaptive weight retuning (Sundays, KST) ----
     try:
         kst_now = datetime.now(timezone.utc) + timedelta(hours=9)
         if kst_now.weekday() == 6:  # Sunday
             send_weekly_summary(records, now_ms)
+            new_weights, tuning_report = recompute_factor_weights(records)
+            save_factor_weights(new_weights)
+            if tuning_report:
+                send_telegram(
+                    "<b>⚙️ 이번 주 가중치 재조정</b>",
+                    "표본이 충분한 요인들의 가중치를 실제 적중률 기준으로 다시 계산했습니다:\n\n" + tuning_report,
+                )
     except Exception as e:  # noqa: BLE001
-        print(f"weekly summary failed: {e}")
+        print(f"weekly summary/tuning failed: {e}")
 
     # ---- chart image: #1 pick per tier (normal picks only, skip pump-flagged) ----
     try:
