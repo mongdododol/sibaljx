@@ -270,6 +270,39 @@ def linear_slope(arr):
     return num / den if den else 0.0
 
 
+def compute_trend_dir(closes):
+    """Same SMA20/SMA50 slope logic used per-coin, factored out so it can be
+    reused for Binance's BTC closes (which come from a different API shape
+    than Upbit candles)."""
+    s20_series = [sma(closes[:i], 20) for i in range(20, len(closes) + 1)]
+    s50_series = [sma(closes[:i], 50) for i in range(50, len(closes) + 1)]
+    slope20 = linear_slope(s20_series[-15:]) if len(s20_series) >= 2 else 0.0
+    slope50 = linear_slope(s50_series[-15:]) if len(s50_series) >= 10 else 0.0
+    if slope20 > 0 and slope50 >= 0:
+        return "상승 추세 연장 가능성"
+    elif slope20 < 0 and slope50 <= 0:
+        return "하락 추세 연장 가능성"
+    return "횡보 / 방향성 약함"
+
+
+def fetch_binance_btc_trend():
+    """Binance is the global BTC market (far higher volume than Upbit's KRW
+    market), so its trend is used as the primary 'BTC regime' signal for the
+    regime filter, rather than Upbit's own thinner BTC/KRW candles."""
+    try:
+        r = requests.get(
+            "https://api.binance.com/api/v3/klines",
+            params={"symbol": "BTCUSDT", "interval": "1d", "limit": 100},
+            timeout=15,
+        )
+        r.raise_for_status()
+        closes = [float(k[4]) for k in r.json()]
+        return compute_trend_dir(closes)
+    except Exception as e:  # noqa: BLE001
+        print(f"binance BTC trend fetch failed: {e}")
+        return None
+
+
 def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
     candles = fetch_candles(market, 100)
     closes = [c["trade_price"] for c in candles]
@@ -459,63 +492,145 @@ def send_telegram_photo(image_bytes, caption=""):
 
 
 def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_pct, today_str):
-    """One compact image with all three tier groups side by side, replacing the
-    long per-coin text blocks. Each row: rank, coin, price, up-probability, a
-    small colored bar showing where price sits in its support-resistance range,
-    and a star if it cleared the 'recommended' bar."""
-    TIER_COLORS = {"대형": "#2563EB", "중형": "#16A34A", "소형": "#D97706"}
+    """One polished, single-canvas summary image with all three tier groups
+    side by side. Uses one shared axes (not per-column subplots) so spacing
+    and proportions are controlled precisely, and uses scatter markers for the
+    entry-position dot (a plt.Circle patch gets stretched into an ellipse
+    whenever the axes' x/y data scales differ - scatter markers are defined in
+    points, not data units, so they stay circular regardless)."""
+    from matplotlib.patches import FancyBboxPatch
+
+    TIER_META = {
+        "대형": {"color": "#2563EB", "light": "#EFF4FF"},
+        "중형": {"color": "#059669", "light": "#ECFDF5"},
+        "소형": {"color": "#D97706", "light": "#FFFBEB"},
+    }
     tiers = ["대형", "중형", "소형"]
-    max_rows = max((len(top5_by_group[t]) for t in tiers), default=0)
-    max_rows = max(max_rows, 1)
+    max_rows = max((len(top5_by_group[t]) for t in tiers), default=1) or 1
 
-    fig_h = 2.0 + max_rows * 0.9
-    fig, axes = plt.subplots(1, 3, figsize=(13, fig_h))
+    col_w, gap = 10.0, 0.6
+    fig_w = col_w * 3 + gap * 2
+    row_h = 2.0
+    header_h = 1.6
+    top_banner_h = 1.3
+    legend_h = 0.9
+    fig_h = top_banner_h + header_h + max_rows * row_h + legend_h + 0.6
 
-    for ax, tier_name in zip(axes, tiers):
+    fig = plt.figure(figsize=(fig_w / 2.2, fig_h / 2.2), dpi=160)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, fig_w)
+    ax.set_ylim(0, fig_h)
+    ax.axis("off")
+    ax.set_facecolor("white")
+    fig.patch.set_facecolor("white")
+
+    y_top = fig_h - 0.15
+
+    # ---- top banner: date + market-wide indicators as pill badges ----
+    ax.text(0.2, y_top - 0.45, today_str, fontsize=13, fontweight="bold", color="#111827", va="center")
+
+    def pill(x, y, text, bg, fg):
+        w = 0.17 * len(text) + 0.35
+        box = FancyBboxPatch((x, y - 0.28), w, 0.56, boxstyle="round,pad=0,rounding_size=0.28",
+                              linewidth=0, facecolor=bg, zorder=2)
+        ax.add_patch(box)
+        ax.text(x + w / 2, y, text, ha="center", va="center", fontsize=9.5, color=fg,
+                fontweight="bold", zorder=3)
+        return x + w + 0.25
+
+    px = 0.2
+    py = y_top - top_banner_h + 0.35
+    if fg_value is not None:
+        fg_bg, fg_fg = ("#FEF2F2", "#DC2626") if fg_value <= 25 else ("#F0FDF4", "#16A34A") if fg_value >= 75 else ("#F3F4F6", "#4B5563")
+        px = pill(px, py, f"공포탐욕 {fg_value} ({fg_label})", fg_bg, fg_fg)
+    btc_bg, btc_fg = ("#F0FDF4", "#16A34A") if btc_trend_dir == "상승 추세 연장 가능성" else \
+                     ("#FEF2F2", "#DC2626") if btc_trend_dir == "하락 추세 연장 가능성" else ("#F3F4F6", "#4B5563")
+    px = pill(px, py, f"BTC {btc_trend_dir.split()[0]}", btc_bg, btc_fg)
+    if kp_pct is not None:
+        kp_bg, kp_fg = ("#FFF7ED", "#D97706") if kp_pct >= 5 else ("#EFF6FF", "#2563EB") if kp_pct <= -1 else ("#F3F4F6", "#4B5563")
+        pill(px, py, f"김프 {kp_pct:+.1f}%", kp_bg, kp_fg)
+
+    ax.plot([0.2, fig_w - 0.2], [y_top - top_banner_h, y_top - top_banner_h], color="#E5E7EB", lw=1, zorder=1)
+
+    # ---- three columns ----
+    body_top = y_top - top_banner_h
+    for col, tier_name in enumerate(tiers):
+        meta = TIER_META[tier_name]
+        x0 = 0.2 + col * (col_w + gap)
         picks = top5_by_group[tier_name]
-        color = TIER_COLORS[tier_name]
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, max_rows + 1)
-        ax.axis("off")
-        ax.add_patch(plt.Rectangle((0, max_rows), 1, 1, color=color, zorder=0))
-        ax.text(0.5, max_rows + 0.5, f"{tier_name} TOP{len(picks) or 0}", ha="center", va="center",
-                fontsize=13, color="white", fontweight="bold", zorder=1)
+
+        # rounded header
+        header = FancyBboxPatch((x0, body_top - header_h), col_w, header_h,
+                                 boxstyle="round,pad=0,rounding_size=0.35",
+                                 linewidth=0, facecolor=meta["color"], zorder=2)
+        ax.add_patch(header)
+        ax.text(x0 + col_w / 2, body_top - header_h / 2 + 0.12, tier_name, ha="center", va="center",
+                fontsize=16, color="white", fontweight="bold", zorder=3)
+        ax.text(x0 + col_w / 2, body_top - header_h / 2 - 0.35, f"TOP {len(picks)}", ha="center", va="center",
+                fontsize=9.5, color="white", alpha=0.85, zorder=3)
+
+        rows_top = body_top - header_h - 0.15
 
         if not picks:
-            ax.text(0.5, max_rows / 2, "결과 없음", ha="center", va="center", fontsize=10, color="#888")
+            ax.text(x0 + col_w / 2, rows_top - max_rows * row_h / 2, "분석 결과 없음",
+                    ha="center", va="center", fontsize=10, color="#9CA3AF")
             continue
 
         for i, r in enumerate(picks):
-            y = max_rows - i - 0.5
-            row_bg = "#F0FDF4" if r["recommended"] else ("#FFFFFF" if i % 2 == 0 else "#F7F7F9")
-            ax.add_patch(plt.Rectangle((0, y - 0.45), 1, 0.9, color=row_bg, zorder=0, ec="#E5E7EB", lw=0.5))
+            row_y1 = rows_top - i * row_h
+            row_y0 = row_y1 - (row_h - 0.15)
+            row_cy = (row_y0 + row_y1) / 2
+            bg = meta["light"] if r["recommended"] else ("#FAFAFA" if i % 2 else "white")
+            row_box = FancyBboxPatch((x0, row_y0), col_w, row_y1 - row_y0,
+                                      boxstyle="round,pad=0,rounding_size=0.12",
+                                      linewidth=0.8, edgecolor="#E5E7EB", facecolor=bg, zorder=1)
+            ax.add_patch(row_box)
 
-            star = " ⭐" if r["recommended"] else ""
-            name = f"{i+1}. {r['koName']}({sym_of_market(r['market'])}){star}"
-            ax.text(0.03, y + 0.22, name, ha="left", va="center", fontsize=9.5, fontweight="bold")
-            ax.text(0.03, y - 0.12, f"{won_short(r['currentPrice'])}  |  상승 {r['upPct']:.0f}%",
-                    ha="left", va="center", fontsize=8.5, color="#333")
+            name_x = x0 + 0.3
+            ax.text(name_x, row_y1 - 0.42, f"{i+1}.", fontsize=10, color="#9CA3AF",
+                    va="center", ha="left", zorder=3)
+            ax.text(name_x + 0.42, row_y1 - 0.42,
+                    f"{r['koName']} ({sym_of_market(r['market'])})",
+                    fontsize=11.5, fontweight="bold", color="#111827", va="center", ha="left", zorder=3)
 
-            # entry-position mini bar: green near support, red near resistance
-            pos = r["positionRatio"]
-            bar_x0, bar_w = 0.62, 0.34
-            ax.add_patch(plt.Rectangle((bar_x0, y - 0.05), bar_w, 0.1, color="#E5E7EB", zorder=0))
+            if r["recommended"]:
+                badge_w = 1.0
+                badge_x = x0 + col_w - badge_w - 0.25
+                ax.add_patch(FancyBboxPatch((badge_x, row_y1 - 0.6), badge_w, 0.42,
+                                             boxstyle="round,pad=0,rounding_size=0.21",
+                                             linewidth=0, facecolor=meta["color"], zorder=3))
+                ax.text(badge_x + badge_w / 2, row_y1 - 0.39, "추천", ha="center", va="center",
+                        fontsize=8.5, color="white", fontweight="bold", zorder=4)
+
+            ax.text(name_x, row_cy - 0.15, won_short(r["currentPrice"]),
+                    fontsize=10, color="#374151", va="center", ha="left", zorder=3)
+            up_color = "#16A34A" if r["upPct"] >= 55 else "#6B7280"
+            ax.text(name_x + 2.6, row_cy - 0.15, f"상승확률 {r['upPct']:.0f}%",
+                    fontsize=10, color=up_color, fontweight="bold", va="center", ha="left", zorder=3)
+
+            # entry-position bar (support -> resistance), fixed-size circular marker via scatter
+            bar_x0, bar_w = x0 + 0.3, col_w - 0.6
+            bar_y = row_y0 + 0.4
+            ax.add_patch(plt.Rectangle((bar_x0, bar_y - 0.05), bar_w, 0.1,
+                                        facecolor="#E5E7EB", edgecolor="none", zorder=2))
+            pos = max(0.0, min(1.0, r["positionRatio"]))
             marker_color = "#16A34A" if pos <= 0.4 else ("#DC2626" if pos >= 0.8 else "#D97706")
-            ax.add_patch(plt.Circle((bar_x0 + bar_w * pos, y), 0.09, color=marker_color, zorder=2))
-            ax.text(bar_x0 + bar_w / 2, y - 0.28, "지지 ← 진입위치 → 저항", ha="center", va="center",
-                    fontsize=6, color="#999")
+            ax.scatter([bar_x0 + bar_w * pos], [bar_y], s=90, color=marker_color,
+                       edgecolors="white", linewidths=1.2, zorder=4)
+            ax.text(bar_x0, bar_y - 0.35, "지지", fontsize=7.5, color="#9CA3AF", ha="left", va="center", zorder=3)
+            ax.text(bar_x0 + bar_w, bar_y - 0.35, "저항", fontsize=7.5, color="#9CA3AF", ha="right", va="center", zorder=3)
 
-    header_bits = []
-    if fg_value is not None:
-        header_bits.append(f"공포탐욕 {fg_value}({fg_label})")
-    header_bits.append(f"BTC {btc_trend_dir}")
-    if kp_pct is not None:
-        header_bits.append(f"김프 {kp_pct:+.1f}%")
-    fig.suptitle(f"{today_str}  ·  " + " · ".join(header_bits), fontsize=11, y=1.02)
-    fig.tight_layout()
+    # ---- single shared legend at the bottom ----
+    legend_y = 0.55
+    ax.scatter([0.5], [legend_y], s=90, color="#16A34A", edgecolors="white", linewidths=1.2, zorder=4)
+    ax.text(0.75, legend_y, "지지선 근접(진입양호)", fontsize=8.5, color="#4B5563", va="center", ha="left")
+    ax.scatter([4.0], [legend_y], s=90, color="#D97706", edgecolors="white", linewidths=1.2, zorder=4)
+    ax.text(4.25, legend_y, "중간 구간", fontsize=8.5, color="#4B5563", va="center", ha="left")
+    ax.scatter([6.4], [legend_y], s=90, color="#DC2626", edgecolors="white", linewidths=1.2, zorder=4)
+    ax.text(6.65, legend_y, "고점권(진입주의)", fontsize=8.5, color="#4B5563", va="center", ha="left")
 
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=140, bbox_inches="tight")
+    fig.savefig(buf, format="png", facecolor="white")
     plt.close(fig)
     buf.seek(0)
     return buf.read()
@@ -675,8 +790,13 @@ def main():
     }
 
     btc_result = simulate("KRW-BTC")
-    btc_return_30 = btc_result["coin_return_30"]
-    btc_trend_dir = btc_result["trend_dir"]
+    btc_return_30 = btc_result["coin_return_30"]  # relative-strength baseline still uses Upbit's own BTC/KRW move
+    binance_trend = fetch_binance_btc_trend()
+    # Binance is the global BTC market (far deeper liquidity than Upbit's KRW
+    # market), so its trend takes priority for the regime filter. Falls back
+    # to Upbit's own BTC trend only if the Binance fetch fails.
+    btc_trend_dir = binance_trend if binance_trend is not None else btc_result["trend_dir"]
+    btc_trend_source = "바이낸스" if binance_trend is not None else "업비트(바이낸스 조회 실패)"
 
     results_by_group = {"대형": [], "중형": [], "소형": []}
     for tier_name, coins in groups.items():
@@ -854,11 +974,18 @@ def main():
         fg_emoji = "😱" if fg_value <= 25 else ("🤑" if fg_value >= 75 else "😐")
         lines.append(f"{fg_emoji} 공포탐욕지수: <b>{fg_value}</b> ({fg_label})")
     btc_emoji = "🟢" if btc_trend_dir == "상승 추세 연장 가능성" else ("🔴" if btc_trend_dir == "하락 추세 연장 가능성" else "🟡")
-    lines.append(f"{btc_emoji} BTC 국면: {btc_trend_dir}")
+    lines.append(f"{btc_emoji} BTC 국면({btc_trend_source} 기준): {btc_trend_dir}")
     if kp_pct is not None:
         kp_emoji = "🔥" if kp_pct >= 5 else ("🧊" if kp_pct <= -1 else "⚖️")
         lines.append(f"{kp_emoji} 김치프리미엄: {kp_pct:+.2f}% (업비트 vs 바이낸스)")
     lines.append("")
+
+    pick_counts = {t: sum(1 for r in top5_by_group[t] if r["recommended"]) for t in ["대형", "중형", "소형"]}
+    total_picks = sum(pick_counts.values())
+    lines.append(
+        f"🎯 오늘 추천 픽: 대형 {pick_counts['대형']} · 중형 {pick_counts['중형']} · "
+        f"소형 {pick_counts['소형']} (총 <b>{total_picks}개</b>)"
+    )
     lines.append("👇 그룹별 TOP5 요약 카드는 아래 이미지를 참고하세요.")
 
     any_warn = False
