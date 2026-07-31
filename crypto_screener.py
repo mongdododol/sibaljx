@@ -510,7 +510,7 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
 
     col_w, gap = 10.0, 0.6
     fig_w = col_w * 3 + gap * 2
-    row_h = 2.0
+    row_h = 2.35
     header_h = 1.6
     top_banner_h = 1.3
     legend_h = 0.9
@@ -580,7 +580,12 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
             row_y1 = rows_top - i * row_h
             row_y0 = row_y1 - (row_h - 0.15)
             row_cy = (row_y0 + row_y1) / 2
-            bg = meta["light"] if r["recommended"] else ("#FAFAFA" if i % 2 else "white")
+            if r["confidence"] == "strong":
+                bg = "#FFFBEB"
+            elif r["confidence"] == "normal":
+                bg = meta["light"]
+            else:
+                bg = "#FAFAFA" if i % 2 else "white"
             row_box = FancyBboxPatch((x0, row_y0), col_w, row_y1 - row_y0,
                                       boxstyle="round,pad=0,rounding_size=0.12",
                                       linewidth=0.8, edgecolor="#E5E7EB", facecolor=bg, zorder=1)
@@ -593,7 +598,15 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
                     f"{r['koName']} ({sym_of_market(r['market'])})",
                     fontsize=11.5, fontweight="bold", color="#111827", va="center", ha="left", zorder=3)
 
-            if r["recommended"]:
+            if r["confidence"] == "strong":
+                badge_w = 1.35
+                badge_x = x0 + col_w - badge_w - 0.25
+                ax.add_patch(FancyBboxPatch((badge_x, row_y1 - 0.6), badge_w, 0.42,
+                                             boxstyle="round,pad=0,rounding_size=0.21",
+                                             linewidth=0, facecolor="#D97706", zorder=3))
+                ax.text(badge_x + badge_w / 2, row_y1 - 0.39, "강력추천", ha="center", va="center",
+                        fontsize=8.5, color="white", fontweight="bold", zorder=4)
+            elif r["confidence"] == "normal":
                 badge_w = 1.0
                 badge_x = x0 + col_w - badge_w - 0.25
                 ax.add_patch(FancyBboxPatch((badge_x, row_y1 - 0.6), badge_w, 0.42,
@@ -602,23 +615,37 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
                 ax.text(badge_x + badge_w / 2, row_y1 - 0.39, "추천", ha="center", va="center",
                         fontsize=8.5, color="white", fontweight="bold", zorder=4)
 
-            ax.text(name_x, row_cy - 0.15, won_short(r["currentPrice"]),
+            ax.text(name_x, row_cy + 0.15, won_short(r["currentPrice"]),
                     fontsize=10, color="#374151", va="center", ha="left", zorder=3)
             up_color = "#16A34A" if r["upPct"] >= 55 else "#6B7280"
-            ax.text(name_x + 2.6, row_cy - 0.15, f"상승확률 {r['upPct']:.0f}%",
+            ax.text(name_x + 2.6, row_cy + 0.15, f"상승확률 {r['upPct']:.0f}%",
                     fontsize=10, color=up_color, fontweight="bold", va="center", ha="left", zorder=3)
+
+            # Buy-zone status: a factual read of where price sits between support and
+            # resistance right now, not a "buy/sell" instruction - the decision is the
+            # user's, this just states the technical position plainly.
+            pos = max(0.0, min(1.0, r["positionRatio"]))
+            if pos <= 0.4:
+                zone_label, zone_color = "매수 고려 구간 (지지선 근접)", "#16A34A"
+            elif pos >= 0.8:
+                zone_label, zone_color = "진입 비추천 (고점권)", "#DC2626"
+            else:
+                zone_label, zone_color = "중립 구간", "#D97706"
+            ax.text(name_x, row_cy - 0.22, f"● {zone_label}", fontsize=9, color=zone_color,
+                    fontweight="bold", va="center", ha="left", zorder=3)
 
             # entry-position bar (support -> resistance), fixed-size circular marker via scatter
             bar_x0, bar_w = x0 + 0.3, col_w - 0.6
-            bar_y = row_y0 + 0.4
+            bar_y = row_y0 + 0.42
             ax.add_patch(plt.Rectangle((bar_x0, bar_y - 0.05), bar_w, 0.1,
                                         facecolor="#E5E7EB", edgecolor="none", zorder=2))
-            pos = max(0.0, min(1.0, r["positionRatio"]))
             marker_color = "#16A34A" if pos <= 0.4 else ("#DC2626" if pos >= 0.8 else "#D97706")
             ax.scatter([bar_x0 + bar_w * pos], [bar_y], s=90, color=marker_color,
                        edgecolors="white", linewidths=1.2, zorder=4)
-            ax.text(bar_x0, bar_y - 0.35, "지지", fontsize=7.5, color="#9CA3AF", ha="left", va="center", zorder=3)
-            ax.text(bar_x0 + bar_w, bar_y - 0.35, "저항", fontsize=7.5, color="#9CA3AF", ha="right", va="center", zorder=3)
+            ax.text(bar_x0, bar_y - 0.32, f"지지 {won_short(r['support'])}", fontsize=7.5,
+                    color="#9CA3AF", ha="left", va="center", zorder=3)
+            ax.text(bar_x0 + bar_w, bar_y - 0.32, f"저항 {won_short(r['resistance'])}", fontsize=7.5,
+                    color="#9CA3AF", ha="right", va="center", zorder=3)
 
     # ---- single shared legend at the bottom ----
     legend_y = 0.55
@@ -758,7 +785,80 @@ def won(n):
     return f"{round(n):,}원"
 
 
+def generate_all_time_report(records, weights):
+    """Full cumulative status, callable anytime (not just Sundays): every
+    settled result ever recorded, not just the trailing 7 days. Useful to
+    check in on the system's actual track record whenever you want, rather
+    than waiting for the weekly summary."""
+    settled = [r for r in records if r.get("settled")]
+    pending = [r for r in records if not r.get("settled")]
+
+    lines = ["📋 <b>누적 현황 리포트</b> (전체 기간)", ""]
+    lines.append(f"총 기록: {len(records)}건 (완료 {len(settled)} · 대기 {len(pending)})")
+
+    if settled:
+        hits = sum(1 for r in settled if r.get("hit"))
+        overall_pct = hits / len(settled) * 100
+        mark = "✅" if overall_pct >= WEEKLY_ACC_TARGET else "⚠️"
+        lines.append(f"전체 적중률: <b>{hits}/{len(settled)}건 ({overall_pct:.1f}%)</b> {mark}")
+        lines.append("")
+        lines.append("<b>■ 그룹별</b>")
+        for tier_name in ["대형", "중형", "소형"]:
+            tier_recs = [r for r in settled if r["tier"] == tier_name]
+            if not tier_recs:
+                lines.append(f"　{tier_name}: 기록 없음")
+                continue
+            h = sum(1 for r in tier_recs if r.get("hit"))
+            lines.append(f"　{tier_name}: {h}/{len(tier_recs)}건 ({h/len(tier_recs)*100:.1f}%)")
+
+        strong_recs = [r for r in settled if r.get("confidence") == "strong"]
+        normal_recs = [r for r in settled if r.get("confidence") == "normal"]
+        if strong_recs or normal_recs:
+            lines.append("")
+            lines.append("<b>■ 확신도별</b>")
+            if strong_recs:
+                h = sum(1 for r in strong_recs if r.get("hit"))
+                lines.append(f"　강력추천: {h}/{len(strong_recs)}건 ({h/len(strong_recs)*100:.1f}%)")
+            if normal_recs:
+                h = sum(1 for r in normal_recs if r.get("hit"))
+                lines.append(f"　일반추천: {h}/{len(normal_recs)}건 ({h/len(normal_recs)*100:.1f}%)")
+    else:
+        lines.append("아직 만기된 기록이 없습니다.")
+
+    # most-recommended coins of all time
+    counts = {}
+    for r in records:
+        key = (r["market"], r["koName"], r["tier"])
+        counts[key] = counts.get(key, 0) + 1
+    ranked = sorted(counts.items(), key=lambda kv: kv[1], reverse=True)[:10]
+    if ranked:
+        lines.append("")
+        lines.append("<b>■ 역대 최다 추천 코인 TOP10</b>")
+        for (market, ko_name, tier_name), cnt in ranked:
+            lines.append(f"　{html.escape(ko_name)}({market.replace('KRW-', '')}, {tier_name}): {cnt}회")
+
+    # current factor weights snapshot
+    lines.append("")
+    lines.append("<b>■ 현재 보정 요인 가중치</b>")
+    for tag, w in weights.items():
+        default_w = DEFAULT_FACTOR_WEIGHTS.get(tag, 0)
+        changed = " (조정됨)" if abs(w - default_w) > 0.05 else ""
+        lines.append(f"　{tag}: {w:+.1f}{changed}")
+
+    lines.append("")
+    lines.append("⚠️ 과거 데이터 기반 통계이며 투자 조언이 아닙니다.")
+    return "\n".join(lines)
+
+
 def main():
+    if os.environ.get("MODE", "daily") == "report":
+        records = load_state()
+        weights = load_factor_weights()
+        report = generate_all_time_report(records, weights)
+        print(report)
+        send_telegram("<b>📋 누적 현황 리포트</b>", report)
+        return
+
     markets = fetch_upbit_markets()
     all_market_codes = [m["market"] for m in markets]
     tickers = fetch_tickers(all_market_codes)
@@ -912,6 +1012,20 @@ def main():
                 and not (btc_bearish and r["relStrength"] <= 0)  # if BTC's weak, demand relative strength
             )
             r["factorTags"] = tags
+
+            # Confidence tier: among recommended picks, how much margin over the bar
+            # do they actually have, and how many independent positive signals line up
+            # (vs just barely scraping past the threshold on probability alone)?
+            positive_tags = {"거래량↑", "기간정합", "BTC대비강세", "RSI과매도", "지지선근접(진입양호)"}
+            positive_count = sum(1 for t in tags if t in positive_tags)
+            negative_tags = {"BTC대비약세", "RSI과매수(주의)", "고점권(진입주의)", "이평선이격큼(과열)", "BTC약세국면(신뢰도↓)"}
+            negative_count = sum(1 for t in tags if t in negative_tags)
+            if r["recommended"] and r["score"] >= RECOMMEND_THRESHOLD + 15 and positive_count >= 3 and negative_count == 0:
+                r["confidence"] = "strong"
+            elif r["recommended"]:
+                r["confidence"] = "normal"
+            else:
+                r["confidence"] = None
         arr.sort(key=lambda r: r["score"], reverse=True)
         return arr[:5]
 
@@ -957,6 +1071,7 @@ def main():
                     "settled": False,
                     "hit": None,
                     "factorTags": r.get("factorTags", []),
+                    "confidence": r.get("confidence"),
                 }
             )
 
@@ -980,11 +1095,14 @@ def main():
         lines.append(f"{kp_emoji} 김치프리미엄: {kp_pct:+.2f}% (업비트 vs 바이낸스)")
     lines.append("")
 
-    pick_counts = {t: sum(1 for r in top5_by_group[t] if r["recommended"]) for t in ["대형", "중형", "소형"]}
-    total_picks = sum(pick_counts.values())
+    strong_counts = {t: sum(1 for r in top5_by_group[t] if r["confidence"] == "strong") for t in ["대형", "중형", "소형"]}
+    normal_counts = {t: sum(1 for r in top5_by_group[t] if r["confidence"] == "normal") for t in ["대형", "중형", "소형"]}
+    total_strong = sum(strong_counts.values())
+    total_normal = sum(normal_counts.values())
     lines.append(
-        f"🎯 오늘 추천 픽: 대형 {pick_counts['대형']} · 중형 {pick_counts['중형']} · "
-        f"소형 {pick_counts['소형']} (총 <b>{total_picks}개</b>)"
+        f"🎯 오늘 추천 픽: <b>강력추천 {total_strong}개</b> · 추천 {total_normal}개 "
+        f"(대형 {strong_counts['대형']+normal_counts['대형']} · 중형 {strong_counts['중형']+normal_counts['중형']} · "
+        f"소형 {strong_counts['소형']+normal_counts['소형']})"
     )
     lines.append("👇 그룹별 TOP5 요약 카드는 아래 이미지를 참고하세요.")
 
