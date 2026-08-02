@@ -229,6 +229,19 @@ def fetch_fear_greed():
     return _FEAR_GREED_CACHE
 
 
+def _get_json_with_retry(url, params, timeout=15, retries=2):
+    last_err = None
+    for attempt in range(retries + 1):
+        try:
+            r = requests.get(url, params=params, timeout=timeout)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            time.sleep(0.5)
+    raise last_err
+
+
 def fetch_kimchi_premium():
     """Compares Upbit's own BTC/KRW price against Binance's global BTC/USDT price
     (converted to KRW using Upbit's own USDT/KRW market, so both legs come from
@@ -236,27 +249,35 @@ def fetch_kimchi_premium():
     premium means the Korean market is trading BTC well above the global price -
     historically a sign of local overheating that can unwind sharply; a very low
     or negative premium can mean local panic/capitulation. This is a market-wide
-    signal, not specific to any one altcoin."""
+    signal, not specific to any one altcoin.
+
+    Needs three separate API calls (2 Upbit + 1 Binance); each is retried
+    individually and reported clearly on failure, since a single flaky call
+    used to silently drop the entire premium calculation."""
+    upbit_btc = upbit_usdt = binance_btc = None
     try:
-        upbit_btc = requests.get(
-            f"{UPBIT_BASE}/ticker", params={"markets": "KRW-BTC"}, timeout=15
-        ).json()[0]["trade_price"]
-        upbit_usdt = requests.get(
-            f"{UPBIT_BASE}/ticker", params={"markets": "KRW-USDT"}, timeout=15
-        ).json()[0]["trade_price"]
-        binance_btc = float(
-            requests.get(
-                "https://api.binance.com/api/v3/ticker/price",
-                params={"symbol": "BTCUSDT"},
-                timeout=15,
-            ).json()["price"]
-        )
-        implied_krw = binance_btc * upbit_usdt
-        premium_pct = (upbit_btc - implied_krw) / implied_krw * 100
-        return {"premium_pct": premium_pct, "upbit_btc": upbit_btc, "binance_btc_krw": implied_krw}
+        upbit_btc = _get_json_with_retry(f"{UPBIT_BASE}/ticker", {"markets": "KRW-BTC"})[0]["trade_price"]
     except Exception as e:  # noqa: BLE001
-        print(f"kimchi premium fetch failed: {e}")
-        return {"premium_pct": None, "upbit_btc": None, "binance_btc_krw": None}
+        print(f"kimchi premium: Upbit KRW-BTC fetch failed: {e}")
+    try:
+        upbit_usdt = _get_json_with_retry(f"{UPBIT_BASE}/ticker", {"markets": "KRW-USDT"})[0]["trade_price"]
+    except Exception as e:  # noqa: BLE001
+        print(f"kimchi premium: Upbit KRW-USDT fetch failed: {e}")
+    try:
+        binance_data = _get_json_with_retry(
+            "https://api.binance.com/api/v3/ticker/price", {"symbol": "BTCUSDT"}
+        )
+        binance_btc = float(binance_data["price"])
+    except Exception as e:  # noqa: BLE001
+        print(f"kimchi premium: Binance BTCUSDT fetch failed: {e}")
+
+    if upbit_btc is None or upbit_usdt is None or binance_btc is None:
+        print("kimchi premium: skipping calculation, one or more legs unavailable")
+        return {"premium_pct": None, "upbit_btc": upbit_btc, "binance_btc_krw": None}
+
+    implied_krw = binance_btc * upbit_usdt
+    premium_pct = (upbit_btc - implied_krw) / implied_krw * 100
+    return {"premium_pct": premium_pct, "upbit_btc": upbit_btc, "binance_btc_krw": implied_krw}
 
 
 def linear_slope(arr):
@@ -1053,7 +1074,9 @@ def main():
                 )
 
     # append today's new recommendations
-    today_str = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d %H:%M")
+    # GitHub's runner is UTC, not KST - .astimezone() with no arg would just
+    # return UTC again there, silently mislabeling the time. Convert explicitly.
+    today_str = (datetime.now(timezone.utc) + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M") + " KST"
     for tier_name, picks in top5_by_group.items():
         for r in picks:
             if not r["recommended"]:
@@ -1144,6 +1167,33 @@ def main():
             send_telegram_photo(card_img, caption="그룹별 TOP5 요약 카드 (⭐=추천, 점 위치=지지~저항 구간 내 진입 위치)")
     except Exception as e:  # noqa: BLE001
         print(f"summary card step failed: {e}")
+
+    # ---- supplementary detail text: full numbers for recommended picks only
+    #      (the image can't fit everything - this is the "why" behind each pick) ----
+    try:
+        detail_lines = ["📑 <b>보강 자료 (추천 코인 상세)</b>", ""]
+        any_reco = False
+        for tier_name in ["대형", "중형", "소형"]:
+            recos = [r for r in top5_by_group[tier_name] if r["recommended"]]
+            for r in recos:
+                any_reco = True
+                conf_label = "🔥 강력추천" if r["confidence"] == "strong" else "⭐ 추천"
+                rsi_txt = f"{r['rsi14']:.0f}" if r.get("rsi14") is not None else "N/A"
+                factor_txt = " · ".join(r["factorTags"]) if r["factorTags"] else "없음"
+                name = html.escape(r["koName"])
+                detail_lines.append(f"<b>{name} ({sym_of(r['market'])})</b> · {tier_name} · {conf_label}")
+                detail_lines.append(f"　추세: {r['trendDir']} · 상승확률 {r['upPct']:.1f}% · RSI {rsi_txt}")
+                detail_lines.append(
+                    f"　목표가(중앙값/추세): {won(r['p50'])} / {won(r['trendProjection'])}"
+                )
+                detail_lines.append(f"　지지 {won(r['support'])} ~ 저항 {won(r['resistance'])}")
+                detail_lines.append(f"　보정요인: {factor_txt}")
+                detail_lines.append("")
+        if any_reco:
+            detail_lines.append("⚠️ 통계 모델 기반 참고자료이며 투자 조언이 아닙니다.")
+            send_telegram("<b>📑 보강 자료</b>", "\n".join(detail_lines))
+    except Exception as e:  # noqa: BLE001
+        print(f"detail text step failed: {e}")
 
     # ---- weekly summary + adaptive weight retuning (Sundays, KST) ----
     try:
