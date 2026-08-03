@@ -700,6 +700,61 @@ def won_short(n):
     return f"{round(n):,}원"
 
 
+def generate_equity_curve_chart(records):
+    """A simplified backtest: if you'd put an equal-sized bet on every
+    recommendation and closed it exactly at the 7-day mark, what would the
+    running (compounding) result look like? This is far more informative than
+    a bare hit-rate percentage, since a high hit rate with small wins and rare
+    big losses can still lose money overall, and vice versa. Grouped by
+    settlement date so overlapping positions don't double-count."""
+    settled = [r for r in records if r.get("settled") and r.get("targetTimestamp")]
+    if len(settled) < 3:
+        return None
+
+    by_date = {}
+    for r in settled:
+        kst_dt = datetime.fromtimestamp(r["targetTimestamp"] / 1000, tz=timezone.utc) + timedelta(hours=9)
+        date_key = kst_dt.strftime("%m-%d")
+        ret = (r["actualPrice"] - r["priceAtLog"]) / r["priceAtLog"] if r["priceAtLog"] else 0.0
+        by_date.setdefault(date_key, []).append(ret)
+
+    dates_sorted = sorted(by_date.keys(), key=lambda d: tuple(map(int, d.split("-"))))
+    equity = 100.0
+    equity_points = [100.0]
+    labels = ["시작"]
+    for d in dates_sorted:
+        avg_ret = sum(by_date[d]) / len(by_date[d])
+        equity *= (1 + avg_ret)
+        equity_points.append(equity)
+        labels.append(d)
+
+    line_color = "#16A34A" if equity_points[-1] >= 100 else "#DC2626"
+    fig, ax = plt.subplots(figsize=(9, 4.2), dpi=150)
+    ax.plot(range(len(equity_points)), equity_points, color=line_color, linewidth=2.2, marker="o", markersize=3)
+    ax.axhline(100, color="#9CA3AF", linestyle="--", linewidth=1)
+    ax.fill_between(range(len(equity_points)), 100, equity_points,
+                     color=line_color, alpha=0.08)
+    step = max(1, len(labels) // 12)
+    ax.set_xticks(range(0, len(labels), step))
+    ax.set_xticklabels([labels[i] for i in range(0, len(labels), step)], rotation=45, ha="right", fontsize=8)
+    ax.set_ylabel("누적 자산 (시작=100)", fontsize=10)
+    ax.set_title(
+        f"추천 따라했다면 누적 수익률: {equity_points[-1]-100:+.1f}% "
+        f"(동일비중·복리 가정, {len(settled)}건 기준)",
+        fontsize=11
+    )
+    ax.grid(axis="y", color="#F3F4F6")
+    for spine in ["top", "right"]:
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", facecolor="white")
+    plt.close(fig)
+    buf.seek(0)
+    return buf.read()
+
+
 def generate_chart_image(top_picks):
     """top_picks: list of (tier_name, record_dict) - one #1 pick per tier group.
     Draws a simple 30-day price line per coin with support/resistance/current
@@ -1052,6 +1107,21 @@ def main():
 
     top5_by_group = {name: score_and_sort(arr) for name, arr in results_by_group.items()}
 
+    # ---- market breadth: what fraction of ALL scanned coins (not just the
+    #      top5) are trending up right now? Gives context for whether "0
+    #      recommendations today" means a weak market or just strict filters. ----
+    all_scanned = [r for arr in results_by_group.values() for r in arr]
+    breadth_up = sum(1 for r in all_scanned if r["trendDir"] == "상승 추세 연장 가능성")
+    breadth_pct = (breadth_up / len(all_scanned) * 100) if all_scanned else None
+    if breadth_pct is None:
+        breadth_label = None
+    elif breadth_pct < 30:
+        breadth_label = "소수 종목만 상승 (국지적 국면)"
+    elif breadth_pct < 60:
+        breadth_label = "혼조"
+    else:
+        breadth_label = "광범위한 상승"
+
     # ---- update prediction tracking state ----
     records = load_state()
     now_ms = int(time.time() * 1000)
@@ -1116,6 +1186,9 @@ def main():
     if kp_pct is not None:
         kp_emoji = "🔥" if kp_pct >= 5 else ("🧊" if kp_pct <= -1 else "⚖️")
         lines.append(f"{kp_emoji} 김치프리미엄: {kp_pct:+.2f}% (업비트 vs 바이낸스)")
+    if breadth_pct is not None:
+        breadth_emoji = "🌱" if breadth_pct >= 60 else ("🍂" if breadth_pct < 30 else "🌤️")
+        lines.append(f"{breadth_emoji} 시장 폭: 스캔한 {len(all_scanned)}개 중 {breadth_up}개({breadth_pct:.0f}%) 상승추세 - {breadth_label}")
     lines.append("")
 
     strong_counts = {t: sum(1 for r in top5_by_group[t] if r["confidence"] == "strong") for t in ["대형", "중형", "소형"]}
@@ -1187,6 +1260,8 @@ def main():
                     f"　목표가(중앙값/추세): {won(r['p50'])} / {won(r['trendProjection'])}"
                 )
                 detail_lines.append(f"　지지 {won(r['support'])} ~ 저항 {won(r['resistance'])}")
+                stop_ref = r["support"] * 0.98
+                detail_lines.append(f"　손절 참고선: {won(stop_ref)} (지지선 2% 이탈 시)")
                 detail_lines.append(f"　보정요인: {factor_txt}")
                 detail_lines.append("")
         if any_reco:
@@ -1206,6 +1281,12 @@ def main():
                 send_telegram(
                     "<b>⚙️ 이번 주 가중치 재조정</b>",
                     "표본이 충분한 요인들의 가중치를 실제 적중률 기준으로 다시 계산했습니다:\n\n" + tuning_report,
+                )
+            equity_img = generate_equity_curve_chart(records)
+            if equity_img:
+                send_telegram_photo(
+                    equity_img,
+                    caption="추천을 그대로 따라했다면의 누적 수익률 곡선 (동일비중·복리 가정, 수수료·슬리피지 미반영 - 참고용)"
                 )
     except Exception as e:  # noqa: BLE001
         print(f"weekly summary/tuning failed: {e}")
