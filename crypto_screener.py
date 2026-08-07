@@ -242,19 +242,62 @@ def _get_json_with_retry(url, params, timeout=15, retries=2):
     raise last_err
 
 
-def fetch_kimchi_premium():
-    """Compares Upbit's own BTC/KRW price against Binance's global BTC/USDT price
-    (converted to KRW using Upbit's own USDT/KRW market, so both legs come from
-    the same exchange's live order book and stay internally consistent). A high
-    premium means the Korean market is trading BTC well above the global price -
-    historically a sign of local overheating that can unwind sharply; a very low
-    or negative premium can mean local panic/capitulation. This is a market-wide
-    signal, not specific to any one altcoin.
+# GitHub-hosted Actions runners are commonly assigned US-based IPs, and Binance
+# blocks api.binance.com for US IPs with an HTTP 451 (geo-restriction) - not a
+# flaky network issue, so plain retries against the same domain never help.
+# data-api.binance.vision is Binance's own public read-only market-data mirror
+# that isn't subject to that block; it's tried first, with api.binance.com and
+# the numbered api1-3 mirrors as fallbacks in case any single domain has its
+# own outage.
+_BINANCE_DOMAINS = [
+    "https://data-api.binance.vision",
+    "https://api.binance.com",
+    "https://api1.binance.com",
+    "https://api2.binance.com",
+    "https://api3.binance.com",
+]
 
-    Needs three separate API calls (2 Upbit + 1 Binance); each is retried
-    individually and reported clearly on failure, since a single flaky call
-    used to silently drop the entire premium calculation."""
-    upbit_btc = upbit_usdt = binance_btc = None
+
+def _get_binance_json(path, params, timeout=15):
+    last_err = None
+    for domain in _BINANCE_DOMAINS:
+        try:
+            return _get_json_with_retry(domain + path, params, timeout=timeout, retries=1)
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            print(f"binance fetch via {domain} failed: {e}")
+    raise last_err
+
+
+def fetch_coingecko_btc_usd():
+    """Fallback for the global BTC price when every Binance mirror is blocked
+    (GitHub Actions runners get HTTP 451 from Binance's whole domain family,
+    mirrors included, since they're all subject to the same US geo-restriction).
+    CoinGecko aggregates prices across many exchanges and isn't region-blocked -
+    already used elsewhere in this script for market-cap data, confirmed working
+    from this same runner environment."""
+    data = _get_json_with_retry(
+        "https://api.coingecko.com/api/v3/simple/price",
+        {"ids": "bitcoin", "vs_currencies": "usd"},
+        timeout=15,
+    )
+    return float(data["bitcoin"]["usd"])
+
+
+def fetch_kimchi_premium():
+    """Compares Upbit's own BTC/KRW price against the global BTC/USD price
+    (converted to KRW using Upbit's own USDT/KRW market, so the KRW leg comes
+    from the same exchange's live order book and stays internally consistent).
+    A high premium means the Korean market is trading BTC well above the
+    global price - historically a sign of local overheating that can unwind
+    sharply; a very low or negative premium can mean local panic/capitulation.
+    This is a market-wide signal, not specific to any one altcoin.
+
+    Needs three data points (2 Upbit + 1 global BTC price); each leg is
+    retried individually and reported clearly on failure, since a single
+    flaky call used to silently drop the entire premium calculation."""
+    upbit_btc = upbit_usdt = global_btc_usd = None
+    global_source = None
     try:
         upbit_btc = _get_json_with_retry(f"{UPBIT_BASE}/ticker", {"markets": "KRW-BTC"})[0]["trade_price"]
     except Exception as e:  # noqa: BLE001
@@ -264,20 +307,24 @@ def fetch_kimchi_premium():
     except Exception as e:  # noqa: BLE001
         print(f"kimchi premium: Upbit KRW-USDT fetch failed: {e}")
     try:
-        binance_data = _get_json_with_retry(
-            "https://api.binance.com/api/v3/ticker/price", {"symbol": "BTCUSDT"}
-        )
-        binance_btc = float(binance_data["price"])
+        binance_data = _get_binance_json("/api/v3/ticker/price", {"symbol": "BTCUSDT"})
+        global_btc_usd = float(binance_data["price"])
+        global_source = "바이낸스"
     except Exception as e:  # noqa: BLE001
-        print(f"kimchi premium: Binance BTCUSDT fetch failed: {e}")
+        print(f"kimchi premium: all Binance mirrors failed ({e}), falling back to CoinGecko")
+        try:
+            global_btc_usd = fetch_coingecko_btc_usd()
+            global_source = "코인게코"
+        except Exception as e2:  # noqa: BLE001
+            print(f"kimchi premium: CoinGecko fallback also failed: {e2}")
 
-    if upbit_btc is None or upbit_usdt is None or binance_btc is None:
+    if upbit_btc is None or upbit_usdt is None or global_btc_usd is None:
         print("kimchi premium: skipping calculation, one or more legs unavailable")
-        return {"premium_pct": None, "upbit_btc": upbit_btc, "binance_btc_krw": None}
+        return {"premium_pct": None, "upbit_btc": upbit_btc, "binance_btc_krw": None, "source": None}
 
-    implied_krw = binance_btc * upbit_usdt
+    implied_krw = global_btc_usd * upbit_usdt
     premium_pct = (upbit_btc - implied_krw) / implied_krw * 100
-    return {"premium_pct": premium_pct, "upbit_btc": upbit_btc, "binance_btc_krw": implied_krw}
+    return {"premium_pct": premium_pct, "upbit_btc": upbit_btc, "binance_btc_krw": implied_krw, "source": global_source}
 
 
 def linear_slope(arr):
@@ -306,22 +353,40 @@ def compute_trend_dir(closes):
     return "횡보 / 방향성 약함"
 
 
+def fetch_coingecko_btc_trend():
+    """Same fallback rationale as fetch_coingecko_btc_usd(): used when every
+    Binance mirror is geo-blocked. CoinGecko's market_chart endpoint gives
+    daily close prices we can run through the same SMA slope logic."""
+    data = _get_json_with_retry(
+        "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart",
+        {"vs_currency": "usd", "days": 100, "interval": "daily"},
+        timeout=20,
+    )
+    closes = [p[1] for p in data["prices"]]
+    return compute_trend_dir(closes)
+
+
 def fetch_binance_btc_trend():
     """Binance is the global BTC market (far higher volume than Upbit's KRW
     market), so its trend is used as the primary 'BTC regime' signal for the
-    regime filter, rather than Upbit's own thinner BTC/KRW candles."""
+    regime filter, rather than Upbit's own thinner BTC/KRW candles. Falls
+    back to CoinGecko if every Binance mirror is geo-blocked (see
+    _BINANCE_DOMAINS comment above). Returns (trend_dir, source_label) so the
+    caller can report which one was actually used, instead of always saying
+    "Binance" even on days it silently fell back."""
     try:
-        r = requests.get(
-            "https://api.binance.com/api/v3/klines",
-            params={"symbol": "BTCUSDT", "interval": "1d", "limit": 100},
-            timeout=15,
+        data = _get_binance_json(
+            "/api/v3/klines", {"symbol": "BTCUSDT", "interval": "1d", "limit": 100}
         )
-        r.raise_for_status()
-        closes = [float(k[4]) for k in r.json()]
-        return compute_trend_dir(closes)
+        closes = [float(k[4]) for k in data]
+        return compute_trend_dir(closes), "바이낸스"
     except Exception as e:  # noqa: BLE001
-        print(f"binance BTC trend fetch failed: {e}")
-        return None
+        print(f"binance BTC trend fetch failed ({e}), falling back to CoinGecko")
+        try:
+            return fetch_coingecko_btc_trend(), "코인게코(글로벌 평균)"
+        except Exception as e2:  # noqa: BLE001
+            print(f"coingecko BTC trend fallback also failed: {e2}")
+            return None, None
 
 
 def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
@@ -967,12 +1032,12 @@ def main():
 
     btc_result = simulate("KRW-BTC")
     btc_return_30 = btc_result["coin_return_30"]  # relative-strength baseline still uses Upbit's own BTC/KRW move
-    binance_trend = fetch_binance_btc_trend()
-    # Binance is the global BTC market (far deeper liquidity than Upbit's KRW
-    # market), so its trend takes priority for the regime filter. Falls back
-    # to Upbit's own BTC trend only if the Binance fetch fails.
+    binance_trend, binance_source = fetch_binance_btc_trend()
+    # Global BTC data (Binance, or CoinGecko if Binance is geo-blocked from this
+    # runner) takes priority for the regime filter. Falls back to Upbit's own
+    # thinner BTC/KRW trend only if both external sources fail.
     btc_trend_dir = binance_trend if binance_trend is not None else btc_result["trend_dir"]
-    btc_trend_source = "바이낸스" if binance_trend is not None else "업비트(바이낸스 조회 실패)"
+    btc_trend_source = binance_source if binance_source is not None else "업비트(외부 조회 전체 실패)"
 
     results_by_group = {"대형": [], "중형": [], "소형": []}
     for tier_name, coins in groups.items():
@@ -1022,6 +1087,7 @@ def main():
 
     kimchi = fetch_kimchi_premium()
     kp_pct = kimchi.get("premium_pct")
+    kp_source = kimchi.get("source") or "글로벌"
     # A sharply elevated Korea-vs-global premium has historically tended to
     # unwind (premium collapses back toward 0 even if the global price is
     # fine), so it's treated as a mild caution flag across the board - not a
@@ -1185,7 +1251,7 @@ def main():
     lines.append(f"{btc_emoji} BTC 국면({btc_trend_source} 기준): {btc_trend_dir}")
     if kp_pct is not None:
         kp_emoji = "🔥" if kp_pct >= 5 else ("🧊" if kp_pct <= -1 else "⚖️")
-        lines.append(f"{kp_emoji} 김치프리미엄: {kp_pct:+.2f}% (업비트 vs 바이낸스)")
+        lines.append(f"{kp_emoji} 김치프리미엄: {kp_pct:+.2f}% (업비트 vs {kp_source})")
     if breadth_pct is not None:
         breadth_emoji = "🌱" if breadth_pct >= 60 else ("🍂" if breadth_pct < 30 else "🌤️")
         lines.append(f"{breadth_emoji} 시장 폭: 스캔한 {len(all_scanned)}개 중 {breadth_up}개({breadth_pct:.0f}%) 상승추세 - {breadth_label}")
