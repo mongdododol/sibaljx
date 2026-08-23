@@ -89,7 +89,18 @@ TIER_RANK_BOUNDS = [
 # Raised again: precision over quantity. Fewer "recommended" picks, but each
 # one has to clear a higher probability bar AND pass the entry-timing checks
 # added below (not already extended near resistance / far above its average).
-RECOMMEND_THRESHOLD = 70
+# BUG FIX (found after ~2 weeks of zero recommendations in production): this
+# used to be checked against the RAW Monte Carlo probability (upPct), which is
+# structurally centered well below 70 even in genuinely strong uptrends -
+# lognormal compounding with zero drift pulls the median down via Jensen's
+# inequality, so raw upPct rarely clears ~60 no matter how good the setup is.
+# The bonuses from every other factor (trend, volume, RSI, entry timing, etc.)
+# were being computed into `score` but never actually used to decide whether
+# something got recommended - only ranking within the already-empty result set.
+# Now: raw probability only needs to clear a low sanity floor, and the real
+# bar is the combined score (probability + every confluence factor together).
+RAW_PROB_FLOOR = 50       # upPct must be at least net-favorable on its own
+RECOMMEND_THRESHOLD = 65  # score (upPct + all bonuses) must clear this to be "추천"
 
 SECTOR_MAP = {
     "BTC": "결제/메이저", "LTC": "결제/메이저", "BCH": "결제/메이저", "BSV": "결제/메이저", "DASH": "결제/메이저",
@@ -402,12 +413,24 @@ def simulate(market, horizon=HORIZON_DAYS, num_paths=NUM_PATHS):
     var_r = sum((r - mean_r) ** 2 for r in log_returns) / len(log_returns)
     sigma = math.sqrt(max(var_r, 0.0))
 
+    # DRIFT FIX: this used to run a pure zero-drift random walk (drift=0 always),
+    # which sounds "honest" but is actually broken - with ~300 paths, up_pct from
+    # a zero-drift walk statistically almost never leaves the ~44-56% band, so any
+    # "recommended if up_pct >= 70%" threshold was nearly impossible to ever hit
+    # (confirmed: zero recommendations logged over multiple weeks). Using the
+    # recent realized daily drift (shrunk toward zero to avoid overreacting to a
+    # short noisy window) lets the simulation actually reflect the trend this
+    # coin has been on, which is also consistent with the separate trend_dir gate
+    # elsewhere already requiring an established uptrend.
+    DRIFT_SHRINKAGE = 0.5
+    drift = mean_r * DRIFT_SHRINKAGE
+
     finals = []
     for _ in range(num_paths):
         price = current_price
         for _ in range(horizon):
             z = random.gauss(0, 1)
-            price *= math.exp(-0.5 * sigma * sigma + sigma * z)
+            price *= math.exp((drift - 0.5 * sigma * sigma) + sigma * z)
         finals.append(price)
     finals.sort()
     up_pct = sum(1 for f in finals if f > current_price) / num_paths * 100
@@ -1146,7 +1169,8 @@ def main():
             r["score"] = r["upPct"] + bonus
             r["recommended"] = (
                 r["trendDir"] == "상승 추세 연장 가능성"
-                and r["upPct"] >= RECOMMEND_THRESHOLD
+                and r["upPct"] >= RAW_PROB_FLOOR            # at least modestly favorable on its own
+                and r["score"] >= RECOMMEND_THRESHOLD        # the real bar: raw prob + all confluence factors combined
                 and (rsi_val is None or 25 < rsi_val < 70)
                 and not r["pumpWarning"]
                 and pos_ratio < 0.75                      # not already sitting near resistance
