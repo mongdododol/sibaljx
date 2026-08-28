@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "market": "KRW-ADA",
+    "koName": "에이다",
+    "tier": "대형",
+    "logDateStr": "2026-08-29 08:01 KST",
+    "logTimestamp": 1787958096813,
+    "targetTimestamp": 1788562896813,
+    "priceAtLog": 281.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  }
+]
