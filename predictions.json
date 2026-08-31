@@ -16,5 +16,22 @@
       "지지선근접(진입양호)"
     ],
     "confidence": "strong"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-08-31 10:21 KST",
+    "logTimestamp": 1788139291224,
+    "targetTimestamp": 1788744091224,
+    "priceAtLog": 15480.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
   }
 ]
