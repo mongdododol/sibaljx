@@ -84,5 +84,140 @@
       "BTC대비강세"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 15200.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ETH",
+    "koName": "이더리움",
+    "tier": "대형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 3275000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SOL",
+    "koName": "솔라나",
+    "tier": "대형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 136900.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-BTC",
+    "koName": "비트코인",
+    "tier": "대형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 106007000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-AAVE",
+    "koName": "에이브",
+    "tier": "중형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 173800.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PUMP",
+    "koName": "펌프펀",
+    "tier": "중형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 5.61,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SHIB",
+    "koName": "시바이누",
+    "tier": "중형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 0.00713,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비약세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PENGU",
+    "koName": "펏지펭귄",
+    "tier": "소형",
+    "logDateStr": "2026-09-03 10:06 KST",
+    "logTimestamp": 1788397565865,
+    "targetTimestamp": 1789002365865,
+    "priceAtLog": 11.3,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
   }
 ]
