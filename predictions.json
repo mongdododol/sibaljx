@@ -219,5 +219,90 @@
       "BTC대비강세"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-09-04 09:57 KST",
+    "logTimestamp": 1788483434664,
+    "targetTimestamp": 1789088234664,
+    "priceAtLog": 16200.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-XRP",
+    "koName": "엑스알피(리플)",
+    "tier": "대형",
+    "logDateStr": "2026-09-04 09:57 KST",
+    "logTimestamp": 1788483434664,
+    "targetTimestamp": 1789088234664,
+    "priceAtLog": 1976.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PUMP",
+    "koName": "펌프펀",
+    "tier": "중형",
+    "logDateStr": "2026-09-04 09:57 KST",
+    "logTimestamp": 1788483434664,
+    "targetTimestamp": 1789088234664,
+    "priceAtLog": 5.79,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-MORPHO",
+    "koName": "모포",
+    "tier": "중형",
+    "logDateStr": "2026-09-04 09:57 KST",
+    "logTimestamp": 1788483434664,
+    "targetTimestamp": 1789088234664,
+    "priceAtLog": 3388.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-POL",
+    "koName": "폴리곤에코시스템토큰",
+    "tier": "소형",
+    "logDateStr": "2026-09-04 09:57 KST",
+    "logTimestamp": 1788483434664,
+    "targetTimestamp": 1789088234664,
+    "priceAtLog": 130.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
   }
 ]
