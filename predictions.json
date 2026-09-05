@@ -7,9 +7,9 @@
     "logTimestamp": 1787958096813,
     "targetTimestamp": 1788562896813,
     "priceAtLog": 281.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 289.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "거래량↑",
       "기간정합",
@@ -302,6 +302,40 @@
     "factorTags": [
       "기간정합",
       "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SOL",
+    "koName": "솔라나",
+    "tier": "대형",
+    "logDateStr": "2026-09-05 09:53 KST",
+    "logTimestamp": 1788569618018,
+    "targetTimestamp": 1789174418018,
+    "priceAtLog": 139700.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PUMP",
+    "koName": "펌프펀",
+    "tier": "중형",
+    "logDateStr": "2026-09-05 09:53 KST",
+    "logTimestamp": 1788569618018,
+    "targetTimestamp": 1789174418018,
+    "priceAtLog": 5.78,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
     ],
     "confidence": "normal"
   }
