@@ -338,5 +338,22 @@
       "BTC대비강세"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-PUMP",
+    "koName": "펌프펀",
+    "tier": "중형",
+    "logDateStr": "2026-09-06 09:52 KST",
+    "logTimestamp": 1788655929806,
+    "targetTimestamp": 1789260729806,
+    "priceAtLog": 5.37,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
   }
 ]
