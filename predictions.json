@@ -313,9 +313,9 @@
     "logTimestamp": 1788569618018,
     "targetTimestamp": 1789174418018,
     "priceAtLog": 139700.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 138900.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -330,9 +330,9 @@
     "logTimestamp": 1788569618018,
     "targetTimestamp": 1789174418018,
     "priceAtLog": 5.78,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 4.93,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -807,5 +807,163 @@
       "BTC대비강세"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 15700.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-XRP",
+    "koName": "엑스알피(리플)",
+    "tier": "대형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 1850.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-ETH",
+    "koName": "이더리움",
+    "tier": "대형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 3424000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-BTC",
+    "koName": "비트코인",
+    "tier": "대형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 105312000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SOL",
+    "koName": "솔라나",
+    "tier": "대형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 138900.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-AAVE",
+    "koName": "에이브",
+    "tier": "중형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 170400.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-UNI",
+    "koName": "유니스왑",
+    "tier": "중형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 8205.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ETC",
+    "koName": "이더리움클래식",
+    "tier": "소형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 10410.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-VET",
+    "koName": "비체인",
+    "tier": "소형",
+    "logDateStr": "2026-09-12 10:04 KST",
+    "logTimestamp": 1789175062394,
+    "targetTimestamp": 1789779862394,
+    "priceAtLog": 10.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "strong"
   }
 ]
