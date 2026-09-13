@@ -619,7 +619,7 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
 
     col_w, gap = 10.0, 0.6
     fig_w = col_w * 3 + gap * 2
-    row_h = 2.35
+    row_h = 1.85
     header_h = 1.6
     top_banner_h = 1.3
     legend_h = 0.9
@@ -724,26 +724,30 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
                 ax.text(badge_x + badge_w / 2, row_y1 - 0.39, "추천", ha="center", va="center",
                         fontsize=8.5, color="white", fontweight="bold", zorder=4)
 
-            ax.text(name_x, row_cy + 0.15, won_short(r["currentPrice"]),
-                    fontsize=10, color="#374151", va="center", ha="left", zorder=3)
-            up_color = "#16A34A" if r["upPct"] >= 55 else "#6B7280"
-            ax.text(name_x + 2.6, row_cy + 0.15, f"상승확률 {r['upPct']:.0f}%",
-                    fontsize=10, color=up_color, fontweight="bold", va="center", ha="left", zorder=3)
-
             # Buy-zone status: a factual read of where price sits between support and
             # resistance right now, not a "buy/sell" instruction - the decision is the
-            # user's, this just states the technical position plainly.
+            # user's, this just states the technical position plainly. Shown as a small
+            # tag on the same line as price/probability rather than its own line - the
+            # dot on the bar below already carries the same color-coded meaning.
             pos = max(0.0, min(1.0, r["positionRatio"]))
             if pos <= 0.4:
-                zone_label, zone_color = "매수 고려 구간 (지지선 근접)", "#16A34A"
+                zone_label, zone_color = "매수 고려", "#16A34A"
             elif pos >= 0.8:
-                zone_label, zone_color = "진입 비추천 (고점권)", "#DC2626"
+                zone_label, zone_color = "진입 비추천", "#DC2626"
             else:
-                zone_label, zone_color = "중립 구간", "#D97706"
-            ax.text(name_x, row_cy - 0.22, f"● {zone_label}", fontsize=9, color=zone_color,
-                    fontweight="bold", va="center", ha="left", zorder=3)
+                zone_label, zone_color = "중립", "#D97706"
 
-            # entry-position bar (support -> resistance), fixed-size circular marker via scatter
+            ax.text(name_x, row_cy, won_short(r["currentPrice"]),
+                    fontsize=10, color="#374151", va="center", ha="left", zorder=3)
+            up_color = "#16A34A" if r["upPct"] >= 55 else "#6B7280"
+            ax.text(name_x + 1.85, row_cy, f"{r['upPct']:.0f}%",
+                    fontsize=10, color=up_color, fontweight="bold", va="center", ha="left", zorder=3)
+            ax.text(name_x + 2.55, row_cy, f"· {zone_label}",
+                    fontsize=9.5, color=zone_color, fontweight="bold", va="center", ha="left", zorder=3)
+
+            # entry-position bar (support -> resistance), fixed-size circular marker via scatter.
+            # Exact support/resistance prices live in the supplementary text message, not here -
+            # the card is a glance view, not the full data dump.
             bar_x0, bar_w = x0 + 0.3, col_w - 0.6
             bar_y = row_y0 + 0.42
             ax.add_patch(plt.Rectangle((bar_x0, bar_y - 0.05), bar_w, 0.1,
@@ -751,9 +755,9 @@ def generate_summary_card(top5_by_group, fg_value, fg_label, btc_trend_dir, kp_p
             marker_color = "#16A34A" if pos <= 0.4 else ("#DC2626" if pos >= 0.8 else "#D97706")
             ax.scatter([bar_x0 + bar_w * pos], [bar_y], s=90, color=marker_color,
                        edgecolors="white", linewidths=1.2, zorder=4)
-            ax.text(bar_x0, bar_y - 0.32, f"지지 {won_short(r['support'])}", fontsize=7.5,
+            ax.text(bar_x0, bar_y - 0.30, "지지", fontsize=7.5,
                     color="#9CA3AF", ha="left", va="center", zorder=3)
-            ax.text(bar_x0 + bar_w, bar_y - 0.32, f"저항 {won_short(r['resistance'])}", fontsize=7.5,
+            ax.text(bar_x0 + bar_w, bar_y - 0.30, "저항", fontsize=7.5,
                     color="#9CA3AF", ha="right", va="center", zorder=3)
 
     # ---- single shared legend at the bottom ----
