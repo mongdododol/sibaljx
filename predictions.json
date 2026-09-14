@@ -364,9 +364,9 @@
     "logTimestamp": 1788742596052,
     "targetTimestamp": 1789347396052,
     "priceAtLog": 5.42,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 4.78,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -1134,6 +1134,164 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 367.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ETH",
+    "koName": "이더리움",
+    "tier": "대형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 3386000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-BTC",
+    "koName": "비트코인",
+    "tier": "대형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 104640000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SOL",
+    "koName": "솔라나",
+    "tier": "대형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 135900.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 15360.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-UNI",
+    "koName": "유니스왑",
+    "tier": "중형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 8455.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ENA",
+    "koName": "에테나",
+    "tier": "중형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 187.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-AVAX",
+    "koName": "아발란체",
+    "tier": "중형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 9990.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비약세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ETHFI",
+    "koName": "이더파이",
+    "tier": "소형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 867.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ARB",
+    "koName": "아비트럼",
+    "tier": "소형",
+    "logDateStr": "2026-09-14 09:59 KST",
+    "logTimestamp": 1789347569564,
+    "targetTimestamp": 1789952369564,
+    "priceAtLog": 183.0,
     "actualPrice": null,
     "settled": false,
     "hit": null,
