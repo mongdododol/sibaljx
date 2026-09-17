@@ -602,9 +602,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 15940.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 15190.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "거래량↑",
       "기간정합",
@@ -621,9 +621,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 3348000.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 3334000.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -639,9 +639,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 1887.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 1784.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -657,9 +657,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 137300.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 136000.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -674,9 +674,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 106146000.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 105095000.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "지지선근접(진입양호)"
@@ -691,9 +691,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 204.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 211.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -709,9 +709,9 @@
     "logTimestamp": 1789002214832,
     "targetTimestamp": 1789607014832,
     "priceAtLog": 5.47,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 5.07,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -1554,6 +1554,133 @@
     "logTimestamp": 1789521736731,
     "targetTimestamp": 1790126536731,
     "priceAtLog": 295.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-XRP",
+    "koName": "엑스알피(리플)",
+    "tier": "대형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 1784.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-SOL",
+    "koName": "솔라나",
+    "tier": "대형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 136000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-ETH",
+    "koName": "이더리움",
+    "tier": "대형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 3334000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ADA",
+    "koName": "에이다",
+    "tier": "대형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 270.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비약세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-AAVE",
+    "koName": "에이브",
+    "tier": "중형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 165900.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-ENA",
+    "koName": "에테나",
+    "tier": "중형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 212.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-STX",
+    "koName": "스택스",
+    "tier": "소형",
+    "logDateStr": "2026-09-17 10:20 KST",
+    "logTimestamp": 1789608037972,
+    "targetTimestamp": 1790212837972,
+    "priceAtLog": 333.0,
     "actualPrice": null,
     "settled": false,
     "hit": null,
