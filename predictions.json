@@ -974,9 +974,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 138400.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 151600.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -992,9 +992,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 1861.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 1923.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -1010,9 +1010,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 3438000.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 3590000.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -1027,9 +1027,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 15660.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 16930.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -1045,9 +1045,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 105106000.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 111088000.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "지지선근접(진입양호)"
@@ -1062,9 +1062,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 5.16,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 5.76,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -1080,9 +1080,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 0.00467,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 0.00564,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -1098,9 +1098,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 316200.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 364800.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비약세",
@@ -1116,9 +1116,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 2703.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 2909.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -1134,9 +1134,9 @@
     "logTimestamp": 1789260924357,
     "targetTimestamp": 1789865724357,
     "priceAtLog": 367.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 435.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -1840,6 +1840,39 @@
     "hit": null,
     "factorTags": [
       "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-09-20 10:01 KST",
+    "logTimestamp": 1789866118756,
+    "targetTimestamp": 1790470918756,
+    "priceAtLog": 16930.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LIT",
+    "koName": "라이터",
+    "tier": "소형",
+    "logDateStr": "2026-09-20 10:01 KST",
+    "logTimestamp": 1789866118756,
+    "targetTimestamp": 1790470918756,
+    "priceAtLog": 6560.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
     ],
     "confidence": "normal"
   }
