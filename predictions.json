@@ -1908,5 +1908,89 @@
       "기간정합"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-XLM",
+    "koName": "스텔라루멘",
+    "tier": "대형",
+    "logDateStr": "2026-09-24 10:19 KST",
+    "logTimestamp": 1790212796501,
+    "targetTimestamp": 1790817596501,
+    "priceAtLog": 276.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-09-24 10:19 KST",
+    "logTimestamp": 1790212796501,
+    "targetTimestamp": 1790817596501,
+    "priceAtLog": 16850.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-AAVE",
+    "koName": "에이브",
+    "tier": "중형",
+    "logDateStr": "2026-09-24 10:19 KST",
+    "logTimestamp": 1790212796501,
+    "targetTimestamp": 1790817596501,
+    "priceAtLog": 188300.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SHIB",
+    "koName": "시바이누",
+    "tier": "중형",
+    "logDateStr": "2026-09-24 10:19 KST",
+    "logTimestamp": 1790212796501,
+    "targetTimestamp": 1790817596501,
+    "priceAtLog": 0.00772,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-FIL",
+    "koName": "파일코인",
+    "tier": "소형",
+    "logDateStr": "2026-09-24 10:19 KST",
+    "logTimestamp": 1790212796501,
+    "targetTimestamp": 1790817596501,
+    "priceAtLog": 1284.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
   }
 ]
