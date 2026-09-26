@@ -1835,9 +1835,9 @@
     "logTimestamp": 1789780114457,
     "targetTimestamp": 1790384914457,
     "priceAtLog": 16990.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 18880.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합"
     ],
@@ -2022,6 +2022,24 @@
     "settled": false,
     "hit": null,
     "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LIT",
+    "koName": "라이터",
+    "tier": "소형",
+    "logDateStr": "2026-09-26 10:29 KST",
+    "logTimestamp": 1790386180865,
+    "targetTimestamp": 1790990980865,
+    "priceAtLog": 6530.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
       "기간정합",
       "BTC대비강세"
     ],
