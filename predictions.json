@@ -1851,9 +1851,9 @@
     "logTimestamp": 1789866118756,
     "targetTimestamp": 1790470918756,
     "priceAtLog": 16930.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 19110.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합"
     ],
@@ -1867,9 +1867,9 @@
     "logTimestamp": 1789866118756,
     "targetTimestamp": 1790470918756,
     "priceAtLog": 6560.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 6485.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -2042,6 +2042,38 @@
       "거래량↑",
       "기간정합",
       "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-XRP",
+    "koName": "엑스알피(리플)",
+    "tier": "대형",
+    "logDateStr": "2026-09-27 10:22 KST",
+    "logTimestamp": 1790472127551,
+    "targetTimestamp": 1791076927551,
+    "priceAtLog": 2065.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-DOGE",
+    "koName": "도지코인",
+    "tier": "대형",
+    "logDateStr": "2026-09-27 10:22 KST",
+    "logTimestamp": 1790472127551,
+    "targetTimestamp": 1791076927551,
+    "priceAtLog": 130.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
     ],
     "confidence": "normal"
   }
