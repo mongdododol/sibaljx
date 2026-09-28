@@ -2076,5 +2076,54 @@
       "기간정합"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-ETH",
+    "koName": "이더리움",
+    "tier": "대형",
+    "logDateStr": "2026-09-28 10:35 KST",
+    "logTimestamp": 1790559352141,
+    "targetTimestamp": 1791164152141,
+    "priceAtLog": 3628000.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-XRP",
+    "koName": "엑스알피(리플)",
+    "tier": "대형",
+    "logDateStr": "2026-09-28 10:35 KST",
+    "logTimestamp": 1790559352141,
+    "targetTimestamp": 1791164152141,
+    "priceAtLog": 2056.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-VVV",
+    "koName": "베니스토큰",
+    "tier": "소형",
+    "logDateStr": "2026-09-28 10:35 KST",
+    "logTimestamp": 1790559352141,
+    "targetTimestamp": 1791164152141,
+    "priceAtLog": 38530.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
   }
 ]
