@@ -1901,9 +1901,9 @@
     "logTimestamp": 1790126838382,
     "targetTimestamp": 1790731638382,
     "priceAtLog": 17550.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 19630.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합"
     ],
@@ -2207,6 +2207,57 @@
     "hit": null,
     "factorTags": [
       "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-UNI",
+    "koName": "유니스왑",
+    "tier": "중형",
+    "logDateStr": "2026-09-30 11:02 KST",
+    "logTimestamp": 1790733778025,
+    "targetTimestamp": 1791338578025,
+    "priceAtLog": 12040.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-SHIB",
+    "koName": "시바이누",
+    "tier": "중형",
+    "logDateStr": "2026-09-30 11:02 KST",
+    "logTimestamp": 1790733778025,
+    "targetTimestamp": 1791338578025,
+    "priceAtLog": 0.00788,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-STX",
+    "koName": "스택스",
+    "tier": "소형",
+    "logDateStr": "2026-09-30 11:02 KST",
+    "logTimestamp": 1790733778025,
+    "targetTimestamp": 1791338578025,
+    "priceAtLog": 430.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
     ],
     "confidence": "normal"
   }
