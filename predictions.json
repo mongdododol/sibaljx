@@ -2001,9 +2001,9 @@
     "logTimestamp": 1790299564418,
     "targetTimestamp": 1790904364418,
     "priceAtLog": 1582.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 1616.0,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -2018,9 +2018,9 @@
     "logTimestamp": 1790299564418,
     "targetTimestamp": 1790904364418,
     "priceAtLog": 6790.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 5190.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -2336,6 +2336,110 @@
     "logTimestamp": 1790820239731,
     "targetTimestamp": 1791425039731,
     "priceAtLog": 1064.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-UNI",
+    "koName": "유니스왑",
+    "tier": "중형",
+    "logDateStr": "2026-10-02 11:09 KST",
+    "logTimestamp": 1790906997514,
+    "targetTimestamp": 1791511797514,
+    "priceAtLog": 12270.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-BCH",
+    "koName": "비트코인캐시",
+    "tier": "중형",
+    "logDateStr": "2026-10-02 11:09 KST",
+    "logTimestamp": 1790906997514,
+    "targetTimestamp": 1791511797514,
+    "priceAtLog": 419800.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-DOT",
+    "koName": "폴카닷",
+    "tier": "중형",
+    "logDateStr": "2026-10-02 11:09 KST",
+    "logTimestamp": 1790906997514,
+    "targetTimestamp": 1791511797514,
+    "priceAtLog": 1616.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LIT",
+    "koName": "라이터",
+    "tier": "소형",
+    "logDateStr": "2026-10-02 11:09 KST",
+    "logTimestamp": 1790906997514,
+    "targetTimestamp": 1791511797514,
+    "priceAtLog": 5190.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "BTC대비약세",
+      "RSI과매도",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ARB",
+    "koName": "아비트럼",
+    "tier": "소형",
+    "logDateStr": "2026-10-02 11:09 KST",
+    "logTimestamp": 1790906997514,
+    "targetTimestamp": 1791511797514,
+    "priceAtLog": 277.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-APT",
+    "koName": "앱토스",
+    "tier": "소형",
+    "logDateStr": "2026-10-02 11:09 KST",
+    "logTimestamp": 1790906997514,
+    "targetTimestamp": 1791511797514,
+    "priceAtLog": 1081.0,
     "actualPrice": null,
     "settled": false,
     "hit": null,
