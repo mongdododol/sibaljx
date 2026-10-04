@@ -2053,9 +2053,9 @@
     "logTimestamp": 1790472127551,
     "targetTimestamp": 1791076927551,
     "priceAtLog": 2065.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 2024.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합"
     ],
@@ -2069,9 +2069,9 @@
     "logTimestamp": 1790472127551,
     "targetTimestamp": 1791076927551,
     "priceAtLog": 130.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 127.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합"
     ],
@@ -2574,6 +2574,157 @@
     "logTimestamp": 1790992416405,
     "targetTimestamp": 1791597216405,
     "priceAtLog": 1045.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-LINK",
+    "koName": "체인링크",
+    "tier": "대형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 19080.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-XLM",
+    "koName": "스텔라루멘",
+    "tier": "대형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 292.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-DOGE",
+    "koName": "도지코인",
+    "tier": "대형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 127.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-UNI",
+    "koName": "유니스왑",
+    "tier": "중형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 12290.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ENA",
+    "koName": "에테나",
+    "tier": "중형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 324.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-DOT",
+    "koName": "폴카닷",
+    "tier": "중형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 1604.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-APT",
+    "koName": "앱토스",
+    "tier": "소형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 1080.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PENGU",
+    "koName": "펏지펭귄",
+    "tier": "소형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 12.5,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-ARB",
+    "koName": "아비트럼",
+    "tier": "소형",
+    "logDateStr": "2026-10-04 11:33 KST",
+    "logTimestamp": 1791081206013,
+    "targetTimestamp": 1791686006013,
+    "priceAtLog": 273.0,
     "actualPrice": null,
     "settled": false,
     "hit": null,
