@@ -3652,9 +3652,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 112871000.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 110194000.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "지지선근접(진입양호)"
@@ -3669,9 +3669,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 17550.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 16220.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "지지선근접(진입양호)"
@@ -3686,9 +3686,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 298.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 254.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -3704,9 +3704,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 0.00748,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 0.00674,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "지지선근접(진입양호)"
@@ -3721,9 +3721,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 14220.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 13210.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -3739,9 +3739,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 230600.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 204200.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세"
@@ -3756,9 +3756,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 252.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 245.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -3775,9 +3775,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 11620.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 10530.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "RSI과매도",
@@ -3793,9 +3793,9 @@
     "logTimestamp": 1791598611726,
     "targetTimestamp": 1792203411726,
     "priceAtLog": 159.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 150.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
@@ -4965,6 +4965,149 @@
       "거래량↑",
       "기간정합",
       "BTC대비강세"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-NEAR",
+    "koName": "니어프로토콜",
+    "tier": "대형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 6605.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-ADA",
+    "koName": "에이다",
+    "tier": "대형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 298.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-AVAX",
+    "koName": "아발란체",
+    "tier": "중형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 13230.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-WLD",
+    "koName": "월드코인",
+    "tier": "중형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 666.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PYTH",
+    "koName": "피스네트워크",
+    "tier": "소형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 107.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-ZRO",
+    "koName": "레이어제로",
+    "tier": "소형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 2543.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "strong"
+  },
+  {
+    "market": "KRW-SEI",
+    "koName": "세이",
+    "tier": "소형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 84.7,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-APT",
+    "koName": "앱토스",
+    "tier": "소형",
+    "logDateStr": "2026-10-18 09:56 KST",
+    "logTimestamp": 1792285006160,
+    "targetTimestamp": 1792889806160,
+    "priceAtLog": 1073.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세",
+      "지지선근접(진입양호)"
     ],
     "confidence": "normal"
   }
