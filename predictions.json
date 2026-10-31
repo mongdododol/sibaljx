@@ -5654,9 +5654,9 @@
     "logTimestamp": 1792805502062,
     "targetTimestamp": 1793410302062,
     "priceAtLog": 6180.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 5880.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "지지선근접(진입양호)"
     ],
@@ -5670,9 +5670,9 @@
     "logTimestamp": 1792805502062,
     "targetTimestamp": 1793410302062,
     "priceAtLog": 416.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 397.0,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "RSI과매도",
       "지지선근접(진입양호)"
@@ -5687,9 +5687,9 @@
     "logTimestamp": 1792805502062,
     "targetTimestamp": 1793410302062,
     "priceAtLog": 93.5,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 88.9,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
