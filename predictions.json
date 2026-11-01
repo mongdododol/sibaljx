@@ -5705,9 +5705,9 @@
     "logTimestamp": 1792890243592,
     "targetTimestamp": 1793495043592,
     "priceAtLog": 107.0,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 97.7,
+    "settled": true,
+    "hit": false,
     "factorTags": [
       "기간정합",
       "BTC대비강세",
