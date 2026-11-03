@@ -5723,11 +5723,29 @@
     "logTimestamp": 1793066466600,
     "targetTimestamp": 1793671266600,
     "priceAtLog": 899.0,
+    "actualPrice": 800.0,
+    "settled": true,
+    "hit": false,
+    "factorTags": [
+      "지지선근접(진입양호)"
+    ],
+    "confidence": "normal"
+  },
+  {
+    "market": "KRW-PEPE",
+    "koName": "페페",
+    "tier": "중형",
+    "logDateStr": "2026-11-03 12:54 KST",
+    "logTimestamp": 1793678086455,
+    "targetTimestamp": 1794282886455,
+    "priceAtLog": 0.00631,
     "actualPrice": null,
     "settled": false,
     "hit": null,
     "factorTags": [
-      "지지선근접(진입양호)"
+      "거래량↑",
+      "기간정합",
+      "BTC대비강세"
     ],
     "confidence": "normal"
   }
