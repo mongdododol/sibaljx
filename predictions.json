@@ -5765,5 +5765,22 @@
       "BTC대비강세"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-PEPE",
+    "koName": "페페",
+    "tier": "중형",
+    "logDateStr": "2026-11-06 12:22 KST",
+    "logTimestamp": 1793935373114,
+    "targetTimestamp": 1794540173114,
+    "priceAtLog": 0.00661,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "기간정합",
+      "BTC대비강세"
+    ],
+    "confidence": "normal"
   }
 ]
