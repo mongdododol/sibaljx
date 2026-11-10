@@ -5739,9 +5739,9 @@
     "logTimestamp": 1793678086455,
     "targetTimestamp": 1794282886455,
     "priceAtLog": 0.00631,
-    "actualPrice": null,
-    "settled": false,
-    "hit": null,
+    "actualPrice": 0.00715,
+    "settled": true,
+    "hit": true,
     "factorTags": [
       "거래량↑",
       "기간정합",
