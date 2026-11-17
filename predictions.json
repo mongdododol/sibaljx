@@ -5835,5 +5835,24 @@
       "BTC약세국면(신뢰도↓)"
     ],
     "confidence": "normal"
+  },
+  {
+    "market": "KRW-JST",
+    "koName": "저스트",
+    "tier": "소형",
+    "logDateStr": "2026-11-17 14:02 KST",
+    "logTimestamp": 1794891751194,
+    "targetTimestamp": 1795496551194,
+    "priceAtLog": 193.0,
+    "actualPrice": null,
+    "settled": false,
+    "hit": null,
+    "factorTags": [
+      "거래량↑",
+      "기간정합",
+      "BTC대비강세",
+      "BTC약세국면(신뢰도↓)"
+    ],
+    "confidence": "normal"
   }
 ]
